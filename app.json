@@ -18,7 +18,13 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
+        "android.permission.POST_NOTIFICATIONS"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -29,7 +35,9 @@
         {
           "iosBackgroundMode": true,
           "androidForegroundService": true,
-          "androidFSTypes": ["mediaPlayback"],
+          "androidFSTypes": [
+            "mediaPlayback"
+          ],
           "androidPermissions": [
             "android.permission.MODIFY_AUDIO_SETTINGS",
             "android.permission.FOREGROUND_SERVICE",
@@ -38,6 +46,12 @@
           ]
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "aa7d1962-ef66-48be-aa68-e0fecd3d54e0"
+      }
+    },
+    "owner": "venari-hunt"
   }
 }
