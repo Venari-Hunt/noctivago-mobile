@@ -7,7 +7,7 @@ Measures a whole night of playback with nobody watching and the PC off. Everythi
 
 ## Evening (owner alone, no adb)
 
-1. Open Noctívago once, close it, open it again: the second open runs the latest update (0.4.3 or later; shown on the preset list).
+1. Open Noctívago and wait a few seconds on the preset list: it reloads itself into the latest update. The bottom line should read v0.4.3 or later.
 2. Unplug the phone, open the preset, set the sleep timer if wanted, press Play, lock the screen.
 
 ## Morning (ask before touching the phone)
