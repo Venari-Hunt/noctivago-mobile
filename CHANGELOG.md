@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.0 — 2026-10-18
+
+- **Fluctuation plays** (phase 4, second part): a looping sound's slow volume, pitch and pan drift, with the desktop's own random walk (`src/shared/modulator.js`). The walk's targets are booked a minute ahead on the audio clock and topped up every 30 seconds, so drift keeps moving with the screen off.
+- **Sound Groups and the whole mix:** their highpass, lowpass, EQ (steep slopes included), gain and echo play live, plus a group's shared volume and pan drift and the whole mix's volume drift and fade-in. A group's "each sound on its own" drift goes to its members, as on the desktop (`src/shared/groupDrift.js`). Groups and filters that change nothing build no audio nodes.
+- The whole mix and every active group end in a soft ceiling standing in for the desktop's limiter (the phone's audio library has no compressor): untouched below -1 dBFS, never above 0.95.
+- Echo plays as fixed repeats (each one delay later, at decay^k, until 60 dB down, at most 16): the audio library can't run the desktop's feedback loop.
+- Pan drift uses Android's stereo panner plus a loudness correction, so the level at each pan matches the desktop's pan law; the left/right balance of a wide stereo sound differs slightly.
+- JavaScript only: arrives over the air on 0.2.0.
+
 ## 0.3.0 — 2026-10-18
 
 - **Random Interval and Scheduled sounds play** (phase 4, first part). Each shot gets the desktop's own random pitch, speed, volume, pan and fades; Random Interval waits its random gap after each shot and fires right away on Play, Scheduled plays at its clock times. "Sync it up with" groups fire together.

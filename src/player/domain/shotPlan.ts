@@ -26,15 +26,6 @@ export type ShotPlan = {
   fadeOutSeconds: number;
 };
 
-// The live config of sound `index` in a phone preset's manifest:
-// settings.scatter or settings.schedule (docs/mobile.md, "Phone preset file").
-export function shotConfigOf(manifest: Record<string, unknown>, index: number, mode: ShotMode): ShotConfig {
-  const sounds = manifest.sounds as { settings?: Record<string, unknown> }[] | undefined;
-  const settings = sounds?.[index]?.settings;
-  const config = mode === 'scatter' ? settings?.scatter : settings?.schedule;
-  return config && typeof config === 'object' ? (config as ShotConfig) : {};
-}
-
 // Matches the desktop Mixer: pitch moves without changing the shot's length
 // (the desktop pre-stretches, the phone uses the library's native stretch),
 // and speed is tape-style, so pitch rides along with it.

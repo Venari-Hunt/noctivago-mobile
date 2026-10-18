@@ -6,22 +6,27 @@ import {
   type ConstantSourceNode,
   type GainNode,
 } from 'react-native-audio-api';
-import { syncShot, shotConfigOf } from './domain/shotPlan';
+import { groupBusSpecs, groupIndexOf, shotSettings, soundFluctuation, wholeMixFadeIn, wholeMixSpec } from './domain/mixPlan';
+import { syncShot } from './domain/shotPlan';
 import { fadePlan } from './domain/sleepTimer';
+import { MixBus, SoundDrift, type ParamDrift } from './mixGraph';
 import { ShotVoice } from './shotVoice';
 import { audioUri, type SavedPreset } from './storage';
 
 // Plays a phone preset like the desktop Mixer (docs/mobile.md, phase 3):
-// each sound's baked clip (looping whole, or as Random Interval / Scheduled
-// shots, shotVoice.ts) → its volume → master → sleep fade → out.
-// The clips already carry filters, pan and reverb, so the phone only mixes.
-// Fluctuation and the Sound Group / whole-mix filters arrive in phase 4
-// part 2.
+// each sound's baked clip (looping whole, with its Fluctuation; or as
+// Random Interval / Scheduled shots, shotVoice.ts) → its volume → its Sound
+// Group bus → whole-mix bus → master → sleep fade → out (mixGraph.ts).
+// The clips already carry their own filters, pan and all reverb, so the
+// phone only mixes.
 
 const FADE_SECONDS = 0.4; // play/pause fade, like the Mixer's start ramp
 const SLIDER_RAMP = 0.05;
+// Fluctuation is booked this far ahead on the audio clock, topped up every
+// half of it (an audio-clock callback, so it keeps going with the screen off).
+const DRIFT_HORIZON = 60;
 
-type Voice = { gain: GainNode; source?: AudioBufferSourceNode; shots?: ShotVoice };
+type Voice = { gain: GainNode; source?: AudioBufferSourceNode; shots?: ShotVoice; drift?: SoundDrift };
 type Remote = 'play' | 'pause';
 
 export class PlayerEngine {
@@ -37,6 +42,11 @@ export class PlayerEngine {
   private title = '';
   /** Silent node whose end event suspends the context after a pause fade. */
   private suspendMarker: ConstantSourceNode | null = null;
+  private buses: MixBus[] = [];
+  private drifts: ParamDrift[] = [];
+  private driftMarker: ConstantSourceNode | null = null;
+  /** The first Play after loading fades in like the desktop's preset load. */
+  private fadeIn = 0;
 
   /** Lock-screen / notification buttons and audio interruptions (calls). */
   onRemote: (command: Remote) => void = () => {};
@@ -60,6 +70,11 @@ export class PlayerEngine {
     master.connect(sleepGain).connect(ctx.destination);
     this.master = master;
     this.sleepGain = sleepGain;
+    const { manifest } = preset;
+    this.fadeIn = wholeMixFadeIn(manifest);
+    const wholeMix = new MixBus(ctx, wholeMixSpec(manifest), master, true);
+    const groups = groupBusSpecs(manifest).map((spec) => (spec ? new MixBus(ctx, spec, wholeMix.input, true) : null));
+    this.buses = [wholeMix, ...groups.filter((b): b is MixBus => !!b)];
 
     // One at a time: each clip is decoded fully into memory, so decoding
     // them all at once could double the peak.
@@ -68,23 +83,39 @@ export class PlayerEngine {
       if (this.ctx !== ctx) return; // unloaded while decoding
       const gain = ctx.createGain();
       gain.gain.value = sound.volume;
-      gain.connect(master);
+      gain.connect(groups[groupIndexOf(manifest, i)]?.input ?? wholeMix.input);
       if (sound.playMode === 'loop') {
         const source = ctx.createBufferSource();
         source.buffer = buffer;
         source.loop = true;
-        source.connect(gain);
+        const drift = new SoundDrift(ctx, source.detune, soundFluctuation(manifest, i), gain);
+        source.connect(drift.input);
         source.start();
-        this.voices.set(i, { gain, source });
+        this.voices.set(i, { gain, source, drift });
       } else {
-        const shots = new ShotVoice(ctx, buffer, gain, sound.playMode, shotConfigOf(preset.manifest, i, sound.playMode));
+        const shots = new ShotVoice(ctx, buffer, gain, sound.playMode, shotSettings(manifest, i, sound.playMode));
         shots.sync = (voice, at) => this.syncGroup(voice, at);
         this.voices.set(i, { gain, shots });
       }
       onProgress?.(i + 1, preset.sounds.length);
     }
+    this.drifts = [...this.buses, ...[...this.voices.values()].map((v) => v.drift)].flatMap((d) => d?.drifts ?? []);
+    this.bookDrift();
     await ctx.suspend();
     this.listen();
+  }
+
+  // Books every Fluctuation walk ahead, then again before that runs out.
+  private bookDrift() {
+    const ctx = this.ctx;
+    if (!ctx || this.drifts.length === 0) return;
+    const now = ctx.currentTime;
+    this.drifts.forEach((d) => d.book(now + DRIFT_HORIZON));
+    const marker = this.atAudioTime(now + DRIFT_HORIZON / 2, () => {
+      if (this.driftMarker !== marker) return;
+      this.bookDrift();
+    });
+    this.driftMarker = marker;
   }
 
   // A sound in a sync group fires with the others (domain/shotPlan.ts).
@@ -123,7 +154,8 @@ export class PlayerEngine {
     this.sleepGain?.gain.setValueAtTime(1, now); // master is silent here
     master.gain.cancelScheduledValues(now);
     master.gain.setValueAtTime(master.gain.value, now);
-    master.gain.linearRampToValueAtTime(this.masterVolume, now + FADE_SECONDS);
+    master.gain.linearRampToValueAtTime(this.masterVolume, now + Math.max(FADE_SECONDS, this.fadeIn));
+    this.fadeIn = 0;
     // Showing the notification starts Android's media foreground service,
     // which is what keeps the app (and audio) alive with the screen off.
     await PlaybackNotificationManager.show({ title: this.title, artist: 'Noctívago', state: 'playing' });
@@ -215,11 +247,16 @@ export class PlayerEngine {
     this.cancelSleepTimer();
     this.subs.forEach((s) => s.remove());
     this.subs = [];
+    this.driftMarker = dropMarker(this.driftMarker);
+    this.drifts = [];
     this.voices.forEach((v) => {
       v.source?.stop();
       v.shots?.dispose();
+      v.drift?.dispose();
     });
     this.voices.clear();
+    this.buses.forEach((b) => b.dispose());
+    this.buses = [];
     const ctx = this.ctx;
     this.ctx = null;
     this.master = null;

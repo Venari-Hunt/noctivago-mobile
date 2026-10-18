@@ -1,13 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { planShot, shotConfigOf, syncShot } from '../src/player/domain/shotPlan.ts';
-
-test('reads scatter or schedule config from the manifest', () => {
-  const manifest = { sounds: [{ settings: { scatter: { minGapSeconds: 3 }, schedule: { type: 'interval' } } }] };
-  assert.deepEqual(shotConfigOf(manifest, 0, 'scatter'), { minGapSeconds: 3 });
-  assert.deepEqual(shotConfigOf(manifest, 0, 'scheduled'), { type: 'interval' });
-  assert.deepEqual(shotConfigOf(manifest, 5, 'scatter'), {});
-});
+import { planShot, syncShot } from '../src/player/domain/shotPlan.ts';
 
 test('a plain shot plays as is, without the stretch', () => {
   const plan = planShot({}, 4);

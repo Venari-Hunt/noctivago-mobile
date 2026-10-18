@@ -5,7 +5,7 @@
 import { copyFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-export const SHARED_FILES = ['shotRules.js', 'modulator.js'];
+export const SHARED_FILES = ['shotRules.js', 'modulator.js', 'groupDrift.js', 'pan.js', 'eqBands.js'];
 
 const here = (p) => fileURLToPath(new URL(p, import.meta.url));
 
