@@ -10,6 +10,8 @@ import { groupBusSpecs, groupIndexOf, shotSettings, soundFluctuation, wholeMixFa
 import { syncShot } from './domain/shotPlan';
 import { fadePlan } from './domain/sleepTimer';
 import { MixBus, SoundDrift, type ParamDrift } from './mixGraph';
+import type { NightEntry } from './domain/nightLog';
+import { recordNight } from './nightLog';
 import { ShotVoice } from './shotVoice';
 import { audioUri, type SavedPreset } from './storage';
 
@@ -25,9 +27,9 @@ const SLIDER_RAMP = 0.05;
 // Fluctuation is booked this far ahead on the audio clock, topped up every
 // half of it (an audio-clock callback, so it keeps going with the screen off).
 const DRIFT_HORIZON = 60;
-// Random Interval / Scheduled safety check, on the audio clock too.
+// Shot safety check and night log, on the audio clock too.
 const WATCH_SECONDS = 60;
-const WATCH_LOG_EVERY = 10; // a summary line in logcat every 10 checks
+const WATCH_LOG_EVERY = 10; // a night log entry every 10 checks
 
 type Voice = { gain: GainNode; source?: AudioBufferSourceNode; shots?: ShotVoice; drift?: SoundDrift };
 type Remote = 'play' | 'pause';
@@ -106,7 +108,8 @@ export class PlayerEngine {
     }
     this.drifts = [...this.buses, ...[...this.voices.values()].map((v) => v.drift)].flatMap((d) => d?.drifts ?? []);
     this.bookDrift();
-    this.watchShots();
+    this.watch();
+    this.logNight('load');
     await ctx.suspend();
     this.listen();
   }
@@ -124,26 +127,31 @@ export class PlayerEngine {
     this.driftMarker = marker;
   }
 
-  // Each shot books the next from its end event, so one lost event would
-  // silence that sound for the night: once a minute, re-book any that
-  // dropped (ShotVoice.check). Logs to logcat for the overnight test.
-  private watchShots() {
+  // Once a minute of playback: each shot books the next from its end event,
+  // so one lost event would silence that sound for the night; re-book any
+  // that dropped (ShotVoice.check). Every 10 minutes, a night log entry.
+  private watch() {
     const ctx = this.ctx;
-    const shots = [...this.voices.entries()].flatMap(([i, v]) => (v.shots ? [[i, v.shots] as const] : []));
-    if (!ctx || shots.length === 0) return;
+    if (!ctx) return;
     if (this.watchCount > 0) {
-      shots.forEach(([i, s]) => s.check() && console.warn(`[shots] re-booked sound ${i}`));
-      if (this.watchCount % WATCH_LOG_EVERY === 0) {
-        const counts = shots.map(([i, s]) => `${i}:${s.shots}/${s.rebooks}`).join(' ');
-        console.log(`[shots] t=${Math.round(ctx.currentTime)}s shots/rebooks ${counts}`);
-      }
+      this.shotVoices().forEach(([i, s]) => s.check() && console.warn(`[shots] re-booked sound ${i}`));
+      if (this.watchCount % WATCH_LOG_EVERY === 0) this.logNight('tick');
     }
     this.watchCount++;
     const marker = this.atAudioTime(ctx.currentTime + WATCH_SECONDS, () => {
       if (this.watchMarker !== marker) return;
-      this.watchShots();
+      this.watch();
     });
     this.watchMarker = marker;
+  }
+
+  private shotVoices() {
+    return [...this.voices.entries()].flatMap(([i, v]) => (v.shots ? [[i, v.shots] as const] : []));
+  }
+
+  private logNight(kind: NightEntry['kind']) {
+    const shots = Object.fromEntries(this.shotVoices().map(([i, s]) => [i, [s.shots, s.rebooks] as [number, number]]));
+    recordNight({ kind, audioSec: Math.round(this.currentTime), preset: this.title, shots });
   }
 
   // A sound in a sync group fires with the others (domain/shotPlan.ts).
@@ -189,6 +197,7 @@ export class PlayerEngine {
     await PlaybackNotificationManager.show({ title: this.title, artist: 'Noctívago', state: 'playing' });
     await PlaybackNotificationManager.enableControl('play', true);
     await PlaybackNotificationManager.enableControl('pause', true);
+    this.logNight('play');
   }
 
   async pause() {
@@ -209,6 +218,7 @@ export class PlayerEngine {
       ctx.suspend().catch(() => {});
     });
     this.suspendMarker = marker;
+    this.logNight('pause');
     await PlaybackNotificationManager.show({ title: this.title, artist: 'Noctívago', state: 'paused' });
   }
 
@@ -225,6 +235,7 @@ export class PlayerEngine {
     const marker = this.atAudioTime(now + end, () => {
       if (this.sleepMarker !== marker) return; // cancelled
       this.sleepMarker = null;
+      this.logNight('sleep-end');
       this.onSleepEnd();
     });
     this.sleepMarker = marker;

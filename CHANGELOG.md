@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.3 — 2026-10-18
+
+- **Night log** for unattended overnight tests: every 10 minutes of playback (and on load, play, pause and sleep timer end) the app saves one line to its storage: time, audio clock, battery, charging, JavaScript memory, and per Random Interval / Scheduled sound the shots played and safety re-books. On start the app prints the saved log to Android's log, so it can be read back without anyone watching. Steps: `docs/night-test.md`.
+- `scripts/night-watch.mjs` (PC, every 10 minutes over Wi-Fi adb: battery, app memory and CPU, app restarts) and `scripts/night-report.mjs` (morning summary of both).
+- The 10-minute `[shots]` log line from 0.4.2 is replaced by the night log entry.
+- JavaScript only: arrives over the air on 0.2.0.
+
 ## 0.4.2 — 2026-10-18
 
 - **Safety check for Random Interval and Scheduled sounds:** each shot books the next one when it ends, so one lost "shot ended" event used to silence that sound for the rest of the night. Once a minute (timed on the audio clock, so it runs with the screen off) the player checks that every shot sound has its next shot booked, and re-books any that dropped. A shot counts as lost 5 seconds after its planned end.

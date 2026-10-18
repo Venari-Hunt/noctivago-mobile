@@ -1,9 +1,10 @@
 import { StatusBar } from 'expo-status-bar';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Alert } from 'react-native';
 import { Player } from './src/player/components/Player';
 import { PresetList } from './src/player/components/PresetList';
 import { PlayerEngine } from './src/player/engine';
+import { printNightLog } from './src/player/nightLog';
 import { importFromUri, type SavedPreset } from './src/player/storage';
 import { useIncomingPreset } from './src/player/useIncomingPreset';
 import { useAutoUpdate } from './src/updates/useAutoUpdate';
@@ -16,6 +17,8 @@ export default function App() {
   const [open, setOpen] = useState<SavedPreset | null>(null);
   const [playing, setPlaying] = useState(false);
   const update = useAutoUpdate(playing);
+  // Hands the saved night log to `adb logcat` (scripts/night-report.mjs).
+  useEffect(printNightLog, []);
   useIncomingPreset((uri) => {
     importFromUri(uri)
       .then(setOpen)

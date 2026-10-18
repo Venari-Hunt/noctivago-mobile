@@ -10,6 +10,7 @@ Player-only Noctívago for phones: imports a preset exported by the desktop app 
 - `src/player/mixGraph.ts` — Fluctuation (drift booked ahead on the audio clock), Sound Group and whole-mix buses; rules in `domain/drift.ts` and `domain/mixPlan.ts`.
 - `src/shared/` — copies of the desktop's `src/shared/` rules (shot picks, Fluctuation). Never edit here: change the desktop, then `node scripts/sync-shared.mjs`; `npm test` catches drift.
 - `src/player/useIncomingPreset.ts` — files handed over by other apps ("Open with", Share); Android filters in `app.json`.
+- `src/player/nightLog.ts` — night log for unattended overnight tests; PC side `scripts/night-watch.mjs` + `night-report.mjs`, steps in `docs/night-test.md`.
 - `src/updates/` — over-the-air update check.
 - `test/` — `node --test` unit tests for `domain/` code.
 
