@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { planShot, syncShot } from '../src/player/domain/shotPlan.ts';
+import { planShot, shotChainStalled, STALL_GRACE_SECONDS, syncShot } from '../src/player/domain/shotPlan.ts';
 
 test('a plain shot plays as is, without the stretch', () => {
   const plan = planShot({}, 4);
@@ -51,4 +51,15 @@ test('sync: a member mid-shot past that moment fires again; one ending earlier w
     { pendingAt: null, busyUntil: 8 },
   ]);
   assert.deepEqual(r, { at: 10, fire: [true, false] });
+});
+
+test('stall check: a shot booked ahead, playing, or just ended is fine', () => {
+  assert.equal(shotChainStalled(100, 50), false);
+  assert.equal(shotChainStalled(100, 99), false);
+  assert.equal(shotChainStalled(100, 104), false);
+});
+
+test('stall check: no shot, or one that ended past the grace, has stalled', () => {
+  assert.equal(shotChainStalled(null, 10), true);
+  assert.equal(shotChainStalled(100, 100 + STALL_GRACE_SECONDS + 1), true);
 });

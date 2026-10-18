@@ -6,7 +6,7 @@ Player-only Noctívago for phones: imports a preset exported by the desktop app 
 
 - `App.tsx` — two screens by state (preset list, player); no router.
 - `src/player/` — `storage.ts` (import a phone preset zip, saved presets in app storage), `engine.ts` (audio graph, lock-screen controls), `domain/` (pure rules: reading the preset file, clock check), `components/` (screens and small UI pieces).
-- `src/player/shotVoice.ts` — Random Interval / Scheduled shots, planned one ahead on the audio clock.
+- `src/player/shotVoice.ts` — Random Interval / Scheduled shots, planned one ahead on the audio clock; the engine re-books a dropped one once a minute (`check()`).
 - `src/player/mixGraph.ts` — Fluctuation (drift booked ahead on the audio clock), Sound Group and whole-mix buses; rules in `domain/drift.ts` and `domain/mixPlan.ts`.
 - `src/shared/` — copies of the desktop's `src/shared/` rules (shot picks, Fluctuation). Never edit here: change the desktop, then `node scripts/sync-shared.mjs`; `npm test` catches drift.
 - `src/player/useIncomingPreset.ts` — files handed over by other apps ("Open with", Share); Android filters in `app.json`.

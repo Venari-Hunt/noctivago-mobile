@@ -25,6 +25,9 @@ const SLIDER_RAMP = 0.05;
 // Fluctuation is booked this far ahead on the audio clock, topped up every
 // half of it (an audio-clock callback, so it keeps going with the screen off).
 const DRIFT_HORIZON = 60;
+// Random Interval / Scheduled safety check, on the audio clock too.
+const WATCH_SECONDS = 60;
+const WATCH_LOG_EVERY = 10; // a summary line in logcat every 10 checks
 
 type Voice = { gain: GainNode; source?: AudioBufferSourceNode; shots?: ShotVoice; drift?: SoundDrift };
 type Remote = 'play' | 'pause';
@@ -45,6 +48,8 @@ export class PlayerEngine {
   private buses: MixBus[] = [];
   private drifts: ParamDrift[] = [];
   private driftMarker: ConstantSourceNode | null = null;
+  private watchMarker: ConstantSourceNode | null = null;
+  private watchCount = 0;
   /** The first Play after loading fades in like the desktop's preset load. */
   private fadeIn = 0;
 
@@ -101,6 +106,7 @@ export class PlayerEngine {
     }
     this.drifts = [...this.buses, ...[...this.voices.values()].map((v) => v.drift)].flatMap((d) => d?.drifts ?? []);
     this.bookDrift();
+    this.watchShots();
     await ctx.suspend();
     this.listen();
   }
@@ -116,6 +122,28 @@ export class PlayerEngine {
       this.bookDrift();
     });
     this.driftMarker = marker;
+  }
+
+  // Each shot books the next from its end event, so one lost event would
+  // silence that sound for the night: once a minute, re-book any that
+  // dropped (ShotVoice.check). Logs to logcat for the overnight test.
+  private watchShots() {
+    const ctx = this.ctx;
+    const shots = [...this.voices.entries()].flatMap(([i, v]) => (v.shots ? [[i, v.shots] as const] : []));
+    if (!ctx || shots.length === 0) return;
+    if (this.watchCount > 0) {
+      shots.forEach(([i, s]) => s.check() && console.warn(`[shots] re-booked sound ${i}`));
+      if (this.watchCount % WATCH_LOG_EVERY === 0) {
+        const counts = shots.map(([i, s]) => `${i}:${s.shots}/${s.rebooks}`).join(' ');
+        console.log(`[shots] t=${Math.round(ctx.currentTime)}s shots/rebooks ${counts}`);
+      }
+    }
+    this.watchCount++;
+    const marker = this.atAudioTime(ctx.currentTime + WATCH_SECONDS, () => {
+      if (this.watchMarker !== marker) return;
+      this.watchShots();
+    });
+    this.watchMarker = marker;
   }
 
   // A sound in a sync group fires with the others (domain/shotPlan.ts).
@@ -248,6 +276,8 @@ export class PlayerEngine {
     this.subs.forEach((s) => s.remove());
     this.subs = [];
     this.driftMarker = dropMarker(this.driftMarker);
+    this.watchMarker = dropMarker(this.watchMarker);
+    this.watchCount = 0;
     this.drifts = [];
     this.voices.forEach((v) => {
       v.source?.stop();

@@ -62,3 +62,13 @@ export function syncShot(at: number, others: SyncMember[]): { at: number; fire: 
   const fire = others.map((m) => (m.pendingAt !== null ? m.pendingAt > earliest : m.busyUntil > earliest));
   return { at: earliest, fire };
 }
+
+// Safety check: a sound's shot chain has stalled when its latest planned
+// shot ended a while ago (each shot books the next one from its end event,
+// so one lost event would silence that sound for the rest of the night).
+// The grace keeps a merely late end event from being taken for a lost one.
+export const STALL_GRACE_SECONDS = 5;
+
+export function shotChainStalled(lastEnd: number | null, now: number): boolean {
+  return lastEnd === null || lastEnd + STALL_GRACE_SECONDS < now;
+}

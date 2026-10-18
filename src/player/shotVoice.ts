@@ -7,7 +7,7 @@ import type {
   StereoPannerNode,
 } from 'react-native-audio-api';
 import { randomGapSeconds, scheduleShotEnvelope, secondsUntilNextTrigger } from '../shared/shotRules.js';
-import { planShot, type ShotConfig, type ShotMode } from './domain/shotPlan';
+import { planShot, shotChainStalled, type ShotConfig, type ShotMode } from './domain/shotPlan';
 
 // One Random Interval or Scheduled sound: plays its baked clip as separate
 // shots, each with its own pitch, speed, volume, pan and fades.
@@ -33,6 +33,9 @@ export class ShotVoice {
   private current: Shot | null = null;
   private chain = 0;
   private live = new Set<Shot>();
+  /** Shots planned and safety re-books since load (overnight checks). */
+  shots = 0;
+  rebooks = 0;
   /** Set by the engine for sync groups; returns the time to fire at. */
   sync: ((voice: ShotVoice, at: number) => number) | null = null;
 
@@ -77,16 +80,34 @@ export class ShotVoice {
     if (!silent && this.sync) at = this.sync(this, at);
     this.drop();
     this.current = this.makeShot(at, ++this.chain);
+    this.shots++;
+  }
+
+  /** Safety check (engine, once a minute on the audio clock): re-books a
+   * sound whose next shot went missing. True when it re-booked. */
+  check(): boolean {
+    const c = this.current;
+    if (!shotChainStalled(c?.end ?? null, this.ctx.currentTime)) return false;
+    if (c) this.release(c, true);
+    const booked = this.planAfter(c?.end ?? 0);
+    if (booked) this.rebooks++;
+    return booked;
   }
 
   private next(shot: Shot) {
+    this.planAfter(shot.end);
+  }
+
+  private planAfter(end: number): boolean {
     if (this.mode === 'scatter') {
       // From the planned end, so event delay never piles up into the gaps.
-      this.plan(Math.max(shot.end + randomGapSeconds(this.config), this.ctx.currentTime + LEAD));
-      return;
+      this.plan(Math.max(end + randomGapSeconds(this.config), this.ctx.currentTime + LEAD));
+      return true;
     }
     const wait = secondsUntilNextTrigger(this.config);
-    if (wait !== null) this.plan(this.ctx.currentTime + wait);
+    if (wait === null) return false;
+    this.plan(this.ctx.currentTime + wait);
+    return true;
   }
 
   // Cancels a shot that hasn't started; one that is playing finishes, but

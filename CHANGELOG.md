@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.2 — 2026-10-18
+
+- **Safety check for Random Interval and Scheduled sounds:** each shot books the next one when it ends, so one lost "shot ended" event used to silence that sound for the rest of the night. Once a minute (timed on the audio clock, so it runs with the screen off) the player checks that every shot sound has its next shot booked, and re-books any that dropped. A shot counts as lost 5 seconds after its planned end.
+- For the overnight test: every 10 minutes the app writes `[shots] t=… shots/rebooks` to Android's log (per sound: shots played, safety re-books); a re-book also logs `[shots] re-booked sound N`.
+- JavaScript only: arrives over the air on 0.2.0.
+
 ## 0.4.1 — 2026-10-18
 
 - Fix: a preset whose sound file names had an accent or a special character (é, ç, a wide "｜" bar) failed to import with "missing the audio for…". Desktop exports before v0.1.269 wrote those names without the zip's UTF-8 flag, so they were read as Latin-1; the phone now reads them back as UTF-8. Desktop v0.1.269 writes the flag.
