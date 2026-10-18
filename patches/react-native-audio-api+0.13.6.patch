@@ -27,6 +27,22 @@ index 76c51aa..66eb486 100644
  
    buffer_ = std::make_shared<DSPAudioBuffer>(RENDER_QUANTUM_SIZE, channelCount_, sampleRate_);
    isInitialized_.store(true, std::memory_order_release);
+diff --git a/node_modules/react-native-audio-api/common/cpp/audioapi/HostObjects/sources/AudioBufferSourceNodeHostObject.cpp b/node_modules/react-native-audio-api/common/cpp/audioapi/HostObjects/sources/AudioBufferSourceNodeHostObject.cpp
+index de6562f..c6fa76d 100644
+--- a/node_modules/react-native-audio-api/common/cpp/audioapi/HostObjects/sources/AudioBufferSourceNodeHostObject.cpp
++++ b/node_modules/react-native-audio-api/common/cpp/audioapi/HostObjects/sources/AudioBufferSourceNodeHostObject.cpp
+@@ -175,7 +175,10 @@ void AudioBufferSourceNodeHostObject::setBuffer(const std::shared_ptr<AudioBuffe
+       copiedBuffer->copy(*buffer, 0, 0, buffer->getSize());
+       copiedBuffer->zero(buffer->getSize(), extraTailFrames);
+     } else {
+-      copiedBuffer = std::make_shared<AudioBuffer>(*buffer);
++      // Noctívago patch: share the decoded clip instead of copying it. The
++      // app never writes into a buffer after decoding, and the copy doubled
++      // memory (every loop held twice, every shot a fresh full copy).
++      copiedBuffer = buffer;
+     }
+ 
+     audioBuffer = std::make_shared<DSPAudioBuffer>(
 diff --git a/node_modules/react-native-audio-api/common/cpp/audioapi/core/effects/ConvolverNode.cpp b/node_modules/react-native-audio-api/common/cpp/audioapi/core/effects/ConvolverNode.cpp
 index fa65999..4e64595 100644
 --- a/node_modules/react-native-audio-api/common/cpp/audioapi/core/effects/ConvolverNode.cpp

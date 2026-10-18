@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.0 — 2026-10-18
+
+- **About half the memory:** the audio library copied each decoded clip whenever a player started it, so every loop sound sat in memory twice and every Random Interval / Scheduled shot made a fresh full copy (Beach: 514 MB measured against ~244 MB of audio). The phone now shares one copy. Shots with pitch correction still get a short-lived copy (the library needs a silent tail on those).
+- Native change (patch in `patches/react-native-audio-api+0.13.6.patch`): needs the new APK, not an over-the-air update.
+
 ## 0.4.3 — 2026-10-18
 
 - **Night log** for unattended overnight tests: every 10 minutes of playback (and on load, play, pause and sleep timer end) the app saves one line to its storage: time, audio clock, battery, charging, JavaScript memory, and per Random Interval / Scheduled sound the shots played and safety re-books. On start the app prints the saved log to Android's log, so it can be read back without anyone watching. Steps: `docs/night-test.md`.
