@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { clockReport } from '../src/spike/domain/clockCheck.ts';
+import { clockReport } from '../src/player/domain/clockCheck.ts';
 
 test('audio that kept running reports 100%', () => {
   const r = clockReport([

@@ -1,108 +1,28 @@
 import { StatusBar } from 'expo-status-bar';
-import * as Battery from 'expo-battery';
-import { useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { AudioManager } from 'react-native-audio-api';
-import { clockReport, type ClockSample } from './src/spike/domain/clockCheck';
-import { SpikeEngine } from './src/spike/engine';
+import { useRef, useState } from 'react';
+import { Player } from './src/player/components/Player';
+import { PresetList } from './src/player/components/PresetList';
+import { PlayerEngine } from './src/player/engine';
+import type { SavedPreset } from './src/player/storage';
 import { useAutoUpdate } from './src/updates/useAutoUpdate';
 
-type Run = { samples: ClockSample[]; batteryStart: number; batteryNow: number };
-
+// Two screens, so plain state instead of a router: the preset list, and the
+// player for one preset. Leaving the player stops playback.
 export default function App() {
-  const engine = useRef(new SpikeEngine());
+  const engine = useRef(new PlayerEngine());
+  const [open, setOpen] = useState<SavedPreset | null>(null);
   const [playing, setPlaying] = useState(false);
-  const [reverb, setReverb] = useState(true);
   const update = useAutoUpdate(playing);
-  const [run, setRun] = useState<Run | null>(null);
-  const [log, setLog] = useState<string[]>([]);
-  const note = (line: string) => setLog((l) => [`${new Date().toLocaleTimeString()} ${line}`, ...l].slice(0, 30));
-
-  useEffect(() => {
-    const sub = AudioManager.addSystemEventListener('interruption', (e) => note(`interruption ${e.type}${e.shouldResume ? ' (resume)' : ''}`));
-    return () => sub?.remove();
-  }, []);
-
-  useEffect(() => {
-    if (!playing) return;
-    const id = setInterval(async () => {
-      const sample = { wallMs: Date.now(), audioSec: engine.current.currentTime };
-      const batteryNow = await Battery.getBatteryLevelAsync();
-      setRun((r) => (r ? { ...r, samples: [...r.samples, sample], batteryNow } : r));
-    }, 5000);
-    return () => clearInterval(id);
-  }, [playing]);
-
-  const toggle = async () => {
-    try {
-      if (playing) {
-        await engine.current.stop();
-        setPlaying(false);
-        note('stopped');
-        return;
-      }
-      await engine.current.start();
-      const battery = await Battery.getBatteryLevelAsync();
-      setRun({ samples: [{ wallMs: Date.now(), audioSec: engine.current.currentTime }], batteryStart: battery, batteryNow: battery });
-      setPlaying(true);
-      note(`playing (context ${engine.current.state})`);
-    } catch (e) {
-      note(`error: ${e instanceof Error ? e.message : String(e)}`);
-    }
-  };
-
-  const toggleReverb = () => {
-    const on = !reverb;
-    engine.current.setReverb(on);
-    setReverb(on);
-    note(`reverb ${on ? 'on' : 'off'}`);
-  };
-
-  const report = run && clockReport(run.samples);
-  const drainPerHour =
-    report && report.wallMinutes > 1 ? ((run.batteryStart - run.batteryNow) * 100 * 60) / report.wallMinutes : null;
+  const version = `${update.label}${update.updateWaiting ? ' · new version ready, pause to load it' : ''}`;
 
   return (
-    <View style={styles.page}>
-      <Text style={styles.title}>Noctívago — background spike</Text>
-      <Text style={styles.version}>{update.label}{update.updateWaiting ? ' · new version ready, press Stop to load it' : ''}</Text>
-      <Text style={styles.help}>Press Play, lock the phone for 30 minutes, listen for gaps or clicks, then unlock and read the numbers.</Text>
-      <Pressable style={[styles.button, playing && styles.buttonOn]} onPress={toggle}>
-        <Text style={styles.buttonText}>{playing ? 'Stop' : 'Play'}</Text>
-      </Pressable>
-      <Pressable style={[styles.button, styles.secondary]} onPress={toggleReverb}>
-        <Text style={styles.secondaryText}>Reverb: {reverb ? 'On' : 'Off'}</Text>
-      </Pressable>
-      {report && (
-        <View style={styles.box}>
-          <Text style={styles.stat}>Wall clock: {report.wallMinutes.toFixed(1)} min</Text>
-          <Text style={styles.stat}>Audio clock: {report.audioMinutes.toFixed(1)} min ({(report.ratio * 100).toFixed(1)}%)</Text>
-          <Text style={styles.stat}>Worst stall: {report.worstStallSec.toFixed(1)} s</Text>
-          <Text style={styles.stat}>Battery: {drainPerHour === null ? 'measuring…' : `${drainPerHour.toFixed(1)}% per hour`}</Text>
-        </View>
+    <>
+      {open ? (
+        <Player engine={engine.current} initial={open} onPlayingChange={setPlaying} onBack={() => setOpen(null)} />
+      ) : (
+        <PresetList version={version} onOpen={setOpen} />
       )}
-      <ScrollView style={styles.log}>
-        {log.map((line, i) => (
-          <Text key={i} style={styles.logLine}>{line}</Text>
-        ))}
-      </ScrollView>
       <StatusBar style="light" />
-    </View>
+    </>
   );
 }
-
-const styles = StyleSheet.create({
-  page: { flex: 1, backgroundColor: '#000', padding: 24, paddingTop: 64, gap: 16 },
-  title: { color: '#ffc933', fontSize: 22, fontWeight: '700' },
-  version: { color: '#666', fontSize: 12 },
-  help: { color: '#bbb', fontSize: 15 },
-  button: { backgroundColor: '#ffc933', borderRadius: 12, padding: 18, alignItems: 'center' },
-  buttonOn: { backgroundColor: '#333' },
-  buttonText: { color: '#000', fontSize: 20, fontWeight: '700' },
-  secondary: { backgroundColor: '#1a1a1a', padding: 12 },
-  secondaryText: { color: '#ffc933', fontSize: 16, fontWeight: '600' },
-  box: { backgroundColor: '#0d0d0d', borderRadius: 12, padding: 16, gap: 6 },
-  stat: { color: '#fff', fontSize: 16 },
-  log: { flex: 1 },
-  logLine: { color: '#888', fontSize: 13, fontFamily: 'monospace' },
-});

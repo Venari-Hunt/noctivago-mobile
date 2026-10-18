@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.0 — 2026-10-17
+
+- The player (phase 3, first part) replaces the spike screen.
+  - **Import preset** opens the phone's file picker; pick a file saved by the PC's Export → "For phone". A regular desktop preset gets a message saying how to make the phone one. Imported presets stay on the phone; hold one to remove it.
+  - **Player:** Play/Pause with a short fade, master volume, a volume slider per sound. Volumes are saved when you lift your finger.
+  - **Lock screen / notification:** Play and Pause buttons work there; a phone call pauses, and playback resumes after it when Android allows.
+  - Loop sounds play now. Random Interval and Scheduled sounds are listed but greyed out until phase 4, along with Fluctuation and Sound Group / whole-mix filters.
+  - Pausing suspends the audio thread, so a paused preset costs no battery.
+  - A small line under the player shows whether audio kept running and the battery drain per hour (from the spike).
+- New native modules (`expo-file-system`, `@react-native-community/slider`), so this version needs a new APK.
+
 ## 0.0.4 — 2026-10-17
 
 - Fix the screen-off gaps for real: measured over Wi-Fi debugging, 0.0.3 still lost ~32% of audio frames with the screen off (Android's track underrun counter), and 0 with Reverb Off. Cause: the reverb (ConvolverNode) handed each channel to a 4-thread pool and waited on it every 128 frames; Android throttles those normal-priority threads when the screen is off. The reverb now runs inline on the audio thread (added to `patches/react-native-audio-api+0.13.6.patch`).

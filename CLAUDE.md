@@ -4,9 +4,9 @@ Player-only Noctívago for phones: imports a preset exported by the desktop app 
 
 ## Architecture
 
-- `App.tsx` — current screen (phase 0: the background-playback spike).
-- `src/spike/` — spike audio graph (`engine.ts`) and its `domain/` (pure rules, unit-tested).
-- `assets/audio/` — spike test sounds, generated with ffmpeg (see CHANGELOG 0.0.1).
+- `App.tsx` — two screens by state (preset list, player); no router.
+- `src/player/` — `storage.ts` (import a phone preset zip, saved presets in app storage), `engine.ts` (audio graph, lock-screen controls), `domain/` (pure rules: reading the preset file, clock check), `components/` (screens and small UI pieces).
+- `src/updates/` — over-the-air update check.
 - `test/` — `node --test` unit tests for `domain/` code.
 
 ## Commands
