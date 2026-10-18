@@ -2,7 +2,7 @@
   "expo": {
     "name": "Noctívago",
     "slug": "noctivago-mobile",
-    "version": "0.5.0",
+    "version": "0.6.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -97,6 +97,23 @@
               "pathPattern": ".*\\..*\\..*\\.ncvpreset"
             }
           ]
+        },
+        {
+          "action": "VIEW",
+          "category": [
+            "DEFAULT",
+            "BROWSABLE"
+          ],
+          "data": [
+            {
+              "scheme": "content",
+              "mimeType": "audio/*"
+            },
+            {
+              "scheme": "file",
+              "mimeType": "audio/*"
+            }
+          ]
         }
       ]
     },
@@ -128,9 +145,12 @@
             "singleShareMimeTypes": [
               "application/octet-stream",
               "application/zip",
-              "application/x-zip-compressed"
+              "application/x-zip-compressed",
+              "audio/*"
             ],
-            "multipleShareMimeTypes": []
+            "multipleShareMimeTypes": [
+              "audio/*"
+            ]
           }
         }
       ]

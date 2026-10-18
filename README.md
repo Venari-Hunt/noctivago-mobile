@@ -1,6 +1,6 @@
 # Noctívago for Android
 
-A player for [Noctívago](https://github.com/Venari-Hunt/Noctivago) ambient mixes on your phone. Export a preset from the desktop app, open it on the phone, and it plays the way the desktop Mixer does, screen off included. The phone app plays mixes; editing stays on the desktop.
+[Noctívago](https://github.com/Venari-Hunt/Noctivago) ambient mixes on your phone. Export a preset from the desktop app, open it on the phone, and it plays the way the desktop Mixer does, screen off included. You can also add your own sounds; the rest of the desktop Mixer is on its way, and per-sound editing (Remix) comes after.
 
 > Early preview. Android only for now.
 
@@ -15,6 +15,10 @@ A player for [Noctívago](https://github.com/Venari-Hunt/Noctivago) ambient mixe
 1. In the desktop app, open **Export**, pick the preset, and choose the **For phone** format (desktop v0.1.269 or newer).
 2. Send the `.ncvpreset` file to your phone (cable, cloud drive, chat app).
 3. On the phone, tap the file, share it to Noctívago, or use **Import preset** in the app.
+
+## Your own sounds
+
+The **Sounds** tab is your library. Tap **Add sounds** to pick audio files from the phone (several at once), or share them to Noctívago from another app. Tap a sound to listen, hold it to rename, tag or delete. Building mixes from your sounds is next.
 
 ## What it plays
 

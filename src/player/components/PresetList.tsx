@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, FlatList, Pressable, StyleSheet, Text } from 'react-native';
 import { deletePreset, importFromPicker, listPresets, type SavedPreset } from '../storage';
 import { colors, shared } from './theme';
 
-type Props = { version: string; onOpen: (preset: SavedPreset) => void };
+type Props = { onOpen: (preset: SavedPreset) => void };
 
-export function PresetList({ version, onOpen }: Props) {
+// The Mixes tab: imported presets. The page around it is the home screen.
+export function PresetList({ onOpen }: Props) {
   const [presets, setPresets] = useState(listPresets);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,9 +38,7 @@ export function PresetList({ version, onOpen }: Props) {
     ]);
 
   return (
-    <View style={shared.page}>
-      <Text style={shared.title}>Noctívago</Text>
-      <Text style={shared.small}>{version}</Text>
+    <>
       <Pressable style={[shared.button, busy && styles.busy]} onPress={add} disabled={busy}>
         <Text style={shared.buttonText}>{busy ? 'Importing…' : 'Import preset'}</Text>
       </Pressable>
@@ -63,13 +62,13 @@ export function PresetList({ version, onOpen }: Props) {
           </Pressable>
         )}
       />
-    </View>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
   busy: { opacity: 0.5 },
-  list: { gap: 10 },
+  list: { gap: 10, paddingBottom: 24 },
   item: { backgroundColor: colors.card, borderRadius: 12, padding: 16, gap: 4 },
   name: { color: colors.text, fontSize: 18, fontWeight: '600' },
 });

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { incomingFileUri, sharedFileUri } from '../src/player/domain/incoming.ts';
+import { incomingFileUri, sharedFileUris } from '../src/player/domain/incoming.ts';
 
 test('"Open with" hands over the file itself', () => {
   const uri = 'content://com.whatsapp.provider.media/item/123';
@@ -15,11 +15,11 @@ test('plain launches and the share link are not files', () => {
   assert.equal(incomingFileUri('https://example.com'), null);
 });
 
-test('the shared file is the first non-text payload', () => {
-  assert.equal(
-    sharedFileUri([{ shareType: 'text', value: 'hi' }, { shareType: 'file', value: 'content://x/1' }]),
-    'content://x/1',
+test('shared files are the non-text payloads', () => {
+  assert.deepEqual(
+    sharedFileUris([{ shareType: 'text', value: 'hi' }, { shareType: 'file', value: 'content://x/1' }, { shareType: 'audio', value: 'content://x/2' }]),
+    ['content://x/1', 'content://x/2'],
   );
-  assert.equal(sharedFileUri([{ shareType: 'url', value: 'https://a' }]), null);
-  assert.equal(sharedFileUri([]), null);
+  assert.deepEqual(sharedFileUris([{ shareType: 'url', value: 'https://a' }]), []);
+  assert.deepEqual(sharedFileUris([]), []);
 });

@@ -10,8 +10,7 @@ export function incomingFileUri(url: string | null | undefined): string | null {
 
 type Payload = { shareType?: string; value?: string };
 
-// The shared file's URI from expo-sharing's payloads; texts and links are not presets.
-export function sharedFileUri(payloads: Payload[]): string | null {
-  const file = payloads.find((p) => p.shareType !== 'text' && p.shareType !== 'url' && p.value);
-  return file?.value ?? null;
+// The shared files' URIs (one or several); texts and links are not files.
+export function sharedFileUris(payloads: Payload[]): string[] {
+  return payloads.filter((p) => p.shareType !== 'text' && p.shareType !== 'url' && p.value).map((p) => p.value as string);
 }

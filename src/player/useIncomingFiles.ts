@@ -1,12 +1,13 @@
 import { useIncomingShare } from 'expo-sharing';
 import { useEffect, useRef } from 'react';
 import { Linking } from 'react-native';
-import { incomingFileUri, sharedFileUri } from './domain/incoming';
+import { incomingFileUri, sharedFileUris } from './domain/incoming';
 
-// Calls onFile with the URI of a file another app handed over: tapping a
-// .ncvpreset and choosing Noctívago ("Open with"), or Share → Noctívago.
+// Calls onFile with the URI of each file another app handed over: tapping a
+// .ncvpreset or a sound and choosing Noctívago ("Open with"), or Share →
+// Noctívago (one file or several).
 // Android filters: app.json (android.intentFilters, expo-sharing plugin).
-export function useIncomingPreset(onFile: (uri: string) => void) {
+export function useIncomingFiles(onFile: (uri: string) => void) {
   const callback = useRef(onFile);
   callback.current = onFile;
 
@@ -22,9 +23,9 @@ export function useIncomingPreset(onFile: (uri: string) => void) {
 
   const { sharedPayloads, clearSharedPayloads } = useIncomingShare();
   useEffect(() => {
-    const uri = sharedFileUri(sharedPayloads);
-    if (!uri) return;
+    const uris = sharedFileUris(sharedPayloads);
+    if (uris.length === 0) return;
     clearSharedPayloads();
-    callback.current(uri);
+    uris.forEach((uri) => callback.current(uri));
   }, [sharedPayloads]);
 }
