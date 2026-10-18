@@ -3,9 +3,9 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
 import { Alert } from 'react-native';
 import { Home, type HomeTab } from './src/home/components/Home';
-import { addSummary, isAudioFile } from './src/library/domain/library';
+import { addSummary, incomingFileName, isAudioFile } from './src/library/domain/library';
 import { PreviewPlayer } from './src/library/preview';
-import { addFromUri } from './src/library/storage';
+import { addFiles } from './src/library/storage';
 import { Player } from './src/player/components/Player';
 import { PlayerEngine } from './src/player/engine';
 import { printNightLog } from './src/player/nightLog';
@@ -33,9 +33,10 @@ export default function App() {
     setOpen(preset);
   };
 
-  useIncomingFiles((uri) => {
-    if (isAudioFile(fileNameOf(uri), fileTypeOf(uri))) {
-      addFromUri(uri)
+  useIncomingFiles((file) => {
+    const { uri } = file;
+    if (isAudioFile(incomingFileName(file.name, uri), file.mimeType ?? fileTypeOf(uri))) {
+      addFiles([{ ...file, mimeType: file.mimeType ?? fileTypeOf(uri) }])
         .then((result) => {
           setLibraryVersion((v) => v + 1);
           setTab('sounds');
@@ -70,14 +71,6 @@ export default function App() {
       <StatusBar style="light" />
     </>
   );
-}
-
-function fileNameOf(uri: string): string {
-  try {
-    return new File(uri).name || uri;
-  } catch {
-    return uri;
-  }
 }
 
 function fileTypeOf(uri: string): string | null {

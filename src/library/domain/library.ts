@@ -60,6 +60,25 @@ export function storedExtension(fileName: string, mimeType?: string | null): str
   return (mimeType && MIME_EXTENSIONS[mimeType.toLowerCase()]) || ext || 'audio';
 }
 
+// Android often hands over only an internal id ("msf:1000293491", "1234",
+// "document:12"): not a name worth showing.
+function looksLikeId(name: string): boolean {
+  return /^(msf|document|raw|primary|audio|image|video):/i.test(name) || /^\d+$/.test(name);
+}
+
+// The file name to use for something handed over: the name the picker or
+// share gave, else the URI's last part when it reads like a file name.
+export function incomingFileName(name: string | null | undefined, uri: string): string {
+  const given = name?.trim();
+  if (given && !looksLikeId(given)) return given;
+  let last = uri.split(/[/?#]/).filter(Boolean).pop() ?? '';
+  try {
+    last = decodeURIComponent(last);
+  } catch {}
+  last = last.replace(/^.*[\\/:]/, '');
+  return last && !looksLikeId(last) && extensionOf(last) ? last : 'Sound';
+}
+
 /** The sound's name: the file name without its extension. */
 export function nameFromFile(fileName: string): string {
   const base = fileName.trim().replace(/^.*[\\/]/, '');

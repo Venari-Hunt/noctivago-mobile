@@ -5,6 +5,7 @@ import {
   extensionOf,
   filterSounds,
   formatLength,
+  incomingFileName,
   isAudioFile,
   nameFromFile,
   parseTags,
@@ -28,6 +29,14 @@ test('stored extension comes from the name, else the type', () => {
   assert.equal(storedExtension('document:1234', 'audio/mpeg'), 'mp3');
   assert.equal(storedExtension('voice note', 'audio/x-m4a'), 'm4a');
   assert.equal(storedExtension('mystery', null), 'audio');
+});
+
+test('handed-over files get a real name, never an Android id', () => {
+  assert.equal(incomingFileName('Test Onda é.opus', 'content://x/msf%3A1'), 'Test Onda é.opus');
+  assert.equal(incomingFileName('msf:1000293491', 'content://com.android.providers.media.documents/document/msf%3A1000293491'), 'Sound');
+  assert.equal(incomingFileName(null, 'file:///storage/emulated/0/Download/Rain%20night.mp3'), 'Rain night.mp3');
+  assert.equal(incomingFileName(null, 'content://media/external/audio/media/1234'), 'Sound');
+  assert.equal(incomingFileName('', 'content://downloads/document/raw%3A%2Fstorage%2FDownload%2Fwind.flac'), 'wind.flac');
 });
 
 test('names come from the file name', () => {

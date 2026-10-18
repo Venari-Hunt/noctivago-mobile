@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { incomingFileUri, sharedFileUris } from '../src/player/domain/incoming.ts';
+import { incomingFileUri, sharedFiles } from '../src/player/domain/incoming.ts';
 
 test('"Open with" hands over the file itself', () => {
   const uri = 'content://com.whatsapp.provider.media/item/123';
@@ -15,11 +15,17 @@ test('plain launches and the share link are not files', () => {
   assert.equal(incomingFileUri('https://example.com'), null);
 });
 
-test('shared files are the non-text payloads', () => {
-  assert.deepEqual(
-    sharedFileUris([{ shareType: 'text', value: 'hi' }, { shareType: 'file', value: 'content://x/1' }, { shareType: 'audio', value: 'content://x/2' }]),
-    ['content://x/1', 'content://x/2'],
-  );
-  assert.deepEqual(sharedFileUris([{ shareType: 'url', value: 'https://a' }]), []);
-  assert.deepEqual(sharedFileUris([]), []);
+test('shared files are the non-text payloads, with resolved names', () => {
+  const payloads = [
+    { shareType: 'text', value: 'hi' },
+    { shareType: 'file', value: 'content://x/1' },
+    { shareType: 'audio', value: 'content://x/2', mimeType: 'audio/*' },
+  ];
+  const resolved = [{ value: 'content://x/2', originalName: 'Rain.mp3', contentMimeType: 'audio/mpeg' }];
+  assert.deepEqual(sharedFiles(payloads, resolved), [
+    { uri: 'content://x/1', name: null, mimeType: null },
+    { uri: 'content://x/2', name: 'Rain.mp3', mimeType: 'audio/mpeg' },
+  ]);
+  assert.deepEqual(sharedFiles([{ shareType: 'url', value: 'https://a' }]), []);
+  assert.deepEqual(sharedFiles([]), []);
 });
