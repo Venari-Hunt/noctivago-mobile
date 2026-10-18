@@ -13,7 +13,7 @@ Player-only Noctívago for phones: imports a preset exported by the desktop app 
 
 - Tests: `npm test`. Typecheck: `npx tsc --noEmit`. Health: `npx expo-doctor`.
 - Cloud build (APK, needs the owner's Expo login): `npx eas-cli build -p android --profile spike`. Only for native changes.
-- Over-the-air update (JS/assets only): `npx eas-cli update --channel spike --message "..." --non-interactive`. The phone picks it up on next open (`src/updates/useAutoUpdate.ts`).
+- Over-the-air update (JS/assets only): `npx eas-cli update --channel spike --environment preview --message "..." --non-interactive`. The phone picks it up on next open (`src/updates/useAutoUpdate.ts`).
 
 Audio: `react-native-audio-api` (native Web Audio). Showing `PlaybackNotificationManager` starts Android's media foreground service; that is what keeps audio alive when locked.
 
