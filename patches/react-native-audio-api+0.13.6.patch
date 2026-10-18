@@ -27,3 +27,43 @@ index 76c51aa..66eb486 100644
  
    buffer_ = std::make_shared<DSPAudioBuffer>(RENDER_QUANTUM_SIZE, channelCount_, sampleRate_);
    isInitialized_.store(true, std::memory_order_release);
+diff --git a/node_modules/react-native-audio-api/common/cpp/audioapi/core/effects/ConvolverNode.cpp b/node_modules/react-native-audio-api/common/cpp/audioapi/core/effects/ConvolverNode.cpp
+index fa65999..4e64595 100644
+--- a/node_modules/react-native-audio-api/common/cpp/audioapi/core/effects/ConvolverNode.cpp
++++ b/node_modules/react-native-audio-api/common/cpp/audioapi/core/effects/ConvolverNode.cpp
+@@ -132,13 +132,14 @@ std::shared_ptr<DSPAudioBuffer> ConvolverNode::processNode(
+   return audioBuffer_;
+ }
+ 
++// Noctívago patch: run each channel inline on the audio thread. Handing the
++// channels to the thread pool and waiting on it every 128-frame quantum
++// starves playback once Android throttles those normal-priority workers
++// (screen off: ~32% of frames missing; inline the same work keeps up).
+ void ConvolverNode::performConvolution(const std::shared_ptr<DSPAudioBuffer> &processingBuffer) {
+   if (processingBuffer->getNumberOfChannels() == 1) {
+     for (int i = 0; i < convolvers_.size(); ++i) {
+-      threadPool_->schedule([&, i] {
+-        convolvers_[i]->process(
+-            *processingBuffer->getChannel(0), *intermediateBuffer_->getChannel(i));
+-      });
++      convolvers_[i]->process(*processingBuffer->getChannel(0), *intermediateBuffer_->getChannel(i));
+     }
+   } else if (processingBuffer->getNumberOfChannels() == 2) {
+     std::vector<int> inputChannelMap;
+@@ -151,13 +152,10 @@ void ConvolverNode::performConvolution(const std::shared_ptr<DSPAudioBuffer> &pr
+       outputChannelMap = {0, 3, 2, 1};
+     }
+     for (int i = 0; i < convolvers_.size(); ++i) {
+-      threadPool_->schedule([this, i, inputChannelMap, outputChannelMap, &processingBuffer] {
+-        convolvers_[i]->process(
+-            *processingBuffer->getChannel(inputChannelMap[i]),
+-            *intermediateBuffer_->getChannel(outputChannelMap[i]));
+-      });
++      convolvers_[i]->process(
++          *processingBuffer->getChannel(inputChannelMap[i]),
++          *intermediateBuffer_->getChannel(outputChannelMap[i]));
+     }
+   }
+-  threadPool_->wait();
+ }
+ } // namespace audioapi
