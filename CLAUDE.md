@@ -11,6 +11,7 @@ Player-only Noctívago for phones: imports a preset exported by the desktop app 
 - `src/shared/` — copies of the desktop's `src/shared/` rules (shot picks, Fluctuation). Never edit here: change the desktop, then `node scripts/sync-shared.mjs`; `npm test` catches drift.
 - `src/player/useIncomingPreset.ts` — files handed over by other apps ("Open with", Share); Android filters in `app.json`.
 - `src/player/nightLog.ts` — night log for unattended overnight tests; morning read-back `scripts/night-fetch.mjs` + `night-report.mjs`, steps in `docs/night-test.md`.
+- `scripts/ab/` — A/B the phone against the desktop engine (record, render, compare); steps in `docs/ab-test.md`.
 - `src/updates/` — over-the-air update check.
 - `test/` — `node --test` unit tests for `domain/` code.
 

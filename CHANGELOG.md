@@ -2,6 +2,9 @@
 
 ## 0.5.0 — 2026-10-18
 
+- **First public release** on GitHub Releases (preview APK). README, and the license is now Apache-2.0 like the desktop app (it was Expo's template file).
+- **A/B against the desktop** (Beach, 5 minutes, phone audio recorded from the app's own stream): integrated loudness −35.0 vs −35.3 LUFS, loudness range 7.4 vs 7.5 LU, bass/mid/treble and left/right levels within 0.7 dB, no gaps or clicks. Each loop's level inside the phone recording matches its preset volume times its drift, as on the desktop. Tools and steps for the next one: `scripts/ab/`, `docs/ab-test.md`.
+
 - **Less memory:** the audio library copied each decoded clip whenever a player started it, so every loop sound sat in memory twice and every Random Interval / Scheduled shot made a fresh full copy. The phone now shares one copy. Shots with pitch correction still get a short-lived copy (the library needs a silent tail on those).
 - Measured on the owner's phone (Beach, all 18 sounds): 367 MB loaded and paused (the export's ~244 MB of audio plus the app itself), ~446 MB playing (peaks 483 MB, falls back as pitched-shot copies are freed; no growth over 5 minutes), 100% audio uptime. Before: 514 MB with only its loop sounds decoded.
 - Native change (patch in `patches/react-native-audio-api+0.13.6.patch`): needs the new APK, not an over-the-air update.
