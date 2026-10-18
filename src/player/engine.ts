@@ -33,7 +33,8 @@ export class PlayerEngine {
   private masterVolume = 0.8;
   private subs: { remove(): void }[] = [];
   private title = '';
-  private suspendTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Silent node whose end event suspends the context after a pause fade. */
+  private suspendMarker: ConstantSourceNode | null = null;
 
   /** Lock-screen / notification buttons and audio interruptions (calls). */
   onRemote: (command: Remote) => void = () => {};
@@ -96,8 +97,7 @@ export class PlayerEngine {
   async play() {
     const { ctx, master } = this;
     if (!ctx || !master) return;
-    if (this.suspendTimer) clearTimeout(this.suspendTimer);
-    this.suspendTimer = null;
+    this.suspendMarker = dropMarker(this.suspendMarker);
     await ctx.resume();
     const now = ctx.currentTime;
     this.sleepGain?.gain.setValueAtTime(1, now); // master is silent here
@@ -120,10 +120,15 @@ export class PlayerEngine {
     master.gain.setValueAtTime(master.gain.value, now);
     master.gain.linearRampToValueAtTime(0, now + FADE_SECONDS);
     // Suspending stops the audio thread, so a paused app costs no battery.
-    this.suspendTimer = setTimeout(() => {
-      this.suspendTimer = null;
-      if (this.ctx === ctx) ctx.suspend().catch(() => {});
-    }, FADE_SECONDS * 1000 + 50);
+    // Timed on the audio clock: a JS timer would stall with the screen off
+    // and leave the thread running (measured: ~10% of a core, silent).
+    dropMarker(this.suspendMarker);
+    const marker = this.atAudioTime(now + FADE_SECONDS + 0.05, () => {
+      if (this.suspendMarker !== marker) return;
+      this.suspendMarker = null;
+      ctx.suspend().catch(() => {});
+    });
+    this.suspendMarker = marker;
     await PlaybackNotificationManager.show({ title: this.title, artist: 'Noctívago', state: 'paused' });
   }
 
@@ -137,33 +142,31 @@ export class PlayerEngine {
     const { fadeStart, end } = fadePlan(seconds);
     sleepGain.gain.setValueAtTime(1, now + fadeStart);
     sleepGain.gain.linearRampToValueAtTime(0, now + end);
-    const marker = ctx.createConstantSource();
-    marker.offset.value = 0;
-    marker.connect(ctx.destination);
-    marker.onEnded = () => {
+    const marker = this.atAudioTime(now + end, () => {
       if (this.sleepMarker !== marker) return; // cancelled
       this.sleepMarker = null;
       this.onSleepEnd();
-    };
-    marker.start(now);
-    marker.stop(now + end);
+    });
     this.sleepMarker = marker;
+  }
+
+  // Calls back at an audio-clock time: a silent source that ends then. Its
+  // end event reaches JS even with the screen off, unlike setTimeout.
+  private atAudioTime(when: number, callback: () => void): ConstantSourceNode {
+    const ctx = this.ctx!;
+    const marker = ctx.createConstantSource();
+    marker.offset.value = 0;
+    marker.connect(ctx.destination);
+    marker.onEnded = callback;
+    marker.start(ctx.currentTime);
+    marker.stop(when);
+    return marker;
   }
 
   // restore: bring the volume back (the timer was turned off while playing).
   // Pausing leaves it where the fade got to; play() resets it while silent.
   cancelSleepTimer(restore = false) {
-    const marker = this.sleepMarker;
-    this.sleepMarker = null;
-    if (marker) {
-      marker.onEnded = null;
-      try {
-        marker.stop();
-      } catch {
-        // already stopped
-      }
-      marker.disconnect();
-    }
+    this.sleepMarker = dropMarker(this.sleepMarker);
     const { ctx, sleepGain } = this;
     if (!ctx || !sleepGain) return;
     sleepGain.gain.cancelScheduledValues(ctx.currentTime);
@@ -188,8 +191,7 @@ export class PlayerEngine {
   }
 
   async unload() {
-    if (this.suspendTimer) clearTimeout(this.suspendTimer);
-    this.suspendTimer = null;
+    this.suspendMarker = dropMarker(this.suspendMarker);
     this.cancelSleepTimer();
     this.subs.forEach((s) => s.remove());
     this.subs = [];
@@ -204,4 +206,17 @@ export class PlayerEngine {
       await PlaybackNotificationManager.hide();
     }
   }
+}
+
+// Cancels an atAudioTime callback. Returns null for the caller's field.
+function dropMarker(marker: ConstantSourceNode | null): null {
+  if (!marker) return null;
+  marker.onEnded = null;
+  try {
+    marker.stop();
+  } catch {
+    // already stopped
+  }
+  marker.disconnect();
+  return null;
 }

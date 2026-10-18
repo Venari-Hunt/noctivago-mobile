@@ -26,6 +26,7 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
   const [playing, setPlaying] = useState(false);
   const [run, setRun] = useState<Run | null>(null);
   const [sleepEndsAt, setSleepEndsAt] = useState<number | null>(null);
+  const [sleepMinutes, setSleepMinutes] = useState<number | null>(null);
   const playingRef = useRef(false);
 
   const setPlayingBoth = (on: boolean) => {
@@ -49,6 +50,7 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
     if (!playingRef.current) await play();
     engine.setSleepTimer(minutes * 60);
     setSleepEndsAt(Date.now() + minutes * 60000);
+    setSleepMinutes(minutes);
   };
   const sleepOff = () => {
     engine.cancelSleepTimer(true);
@@ -122,6 +124,7 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
       </Pressable>
       <SleepTimerRow
         endsAt={sleepEndsAt}
+        minutes={sleepMinutes}
         disabled={!!loading || !!error}
         onPick={(m) => pickSleep(m).catch((e) => setError(String(e)))}
         onOff={sleepOff}

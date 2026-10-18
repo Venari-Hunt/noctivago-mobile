@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.2 — 2026-10-18
+
+- Fix: pausing with the screen off (lock-screen button, sleep timer ending) left the audio thread running, silent, at ~10% of one core until the screen came back on. The suspend after the fade used a JavaScript timer, which stalls while the screen is off; it now runs on the audio clock like the sleep timer.
+- The chosen sleep timer chip lights up while it runs.
+- Measured on the owner's phone (Beach, 18 sounds): the 15-minute timer paused within a few seconds of on time with the screen off; screen-off playback ~10% of one core, 0 missing frames; 514 MB of memory with only its loop sounds decoded (about twice the desktop export's estimate; follow-up).
+
 ## 0.1.1 — 2026-10-18
 
 - Sleep timer on the player: Off, 15m, 30m, 45m, 1h, 1h 30m, 2h (the desktop's choices), with a countdown. The sound fades out over the last 30 seconds, then playback pauses. Picking a time while paused starts playing; pausing turns the timer off.

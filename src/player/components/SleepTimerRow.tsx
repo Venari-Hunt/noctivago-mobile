@@ -6,12 +6,14 @@ import { colors } from './theme';
 type Props = {
   /** Wall-clock ms when playback stops, or null when the timer is off. */
   endsAt: number | null;
+  /** The chosen preset, highlighted while the timer runs. */
+  minutes: number | null;
   disabled?: boolean;
   onPick: (minutes: number) => void;
   onOff: () => void;
 };
 
-export function SleepTimerRow({ endsAt, disabled, onPick, onOff }: Props) {
+export function SleepTimerRow({ endsAt, minutes, disabled, onPick, onOff }: Props) {
   const [now, setNow] = useState(Date.now);
   useEffect(() => {
     if (endsAt === null) return;
@@ -28,7 +30,7 @@ export function SleepTimerRow({ endsAt, disabled, onPick, onOff }: Props) {
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
         <Chip text="Off" active={endsAt === null} disabled={disabled} onPress={onOff} />
         {SLEEP_PRESET_MINUTES.map((m) => (
-          <Chip key={m} text={presetLabel(m)} disabled={disabled} onPress={() => onPick(m)} />
+          <Chip key={m} text={presetLabel(m)} active={endsAt !== null && m === minutes} disabled={disabled} onPress={() => onPick(m)} />
         ))}
       </ScrollView>
     </View>
