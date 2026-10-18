@@ -3,6 +3,8 @@ import {
   AudioManager,
   PlaybackNotificationManager,
   type AudioBufferSourceNode,
+  type ConvolverNode,
+  type GainNode,
 } from 'react-native-audio-api';
 
 // Spike graph, the same shape the desktop Mixer uses:
@@ -12,6 +14,8 @@ import {
 export class SpikeEngine {
   private ctx: AudioContext | null = null;
   private sources: AudioBufferSourceNode[] = [];
+  private reverbPath: { mix: GainNode; reverb: ConvolverNode; wet: GainNode; master: GainNode } | null = null;
+  private reverbOn = true;
 
   get currentTime() {
     return this.ctx?.currentTime ?? 0;
@@ -42,7 +46,9 @@ export class SpikeEngine {
     const wet = ctx.createGain();
     wet.gain.value = 0.35;
     mix.connect(dry).connect(master);
-    mix.connect(reverb).connect(wet).connect(master);
+    reverb.connect(wet);
+    this.reverbPath = { mix, reverb, wet, master };
+    this.applyReverb();
 
     const lowpass = ctx.createBiquadFilter();
     lowpass.type = 'lowpass';
@@ -67,11 +73,32 @@ export class SpikeEngine {
     await PlaybackNotificationManager.show({ title: 'Noctívago spike', artist: 'Rain + pad', state: 'playing' });
   }
 
+  // Off = the convolver is cut out of the graph on both sides, so it costs no
+  // CPU. Isolates whether screen-off clicks come from the reverb.
+  setReverb(on: boolean) {
+    if (on === this.reverbOn) return;
+    this.reverbOn = on;
+    this.applyReverb();
+  }
+
+  private applyReverb() {
+    const p = this.reverbPath;
+    if (!p) return;
+    if (this.reverbOn) {
+      p.mix.connect(p.reverb);
+      p.wet.connect(p.master);
+    } else {
+      p.mix.disconnect(p.reverb);
+      p.wet.disconnect(p.master);
+    }
+  }
+
   async stop() {
     this.sources.forEach((s) => s.stop());
     this.sources = [];
     await this.ctx?.close();
     this.ctx = null;
+    this.reverbPath = null;
     await PlaybackNotificationManager.hide();
   }
 }

@@ -11,6 +11,7 @@ type Run = { samples: ClockSample[]; batteryStart: number; batteryNow: number };
 export default function App() {
   const engine = useRef(new SpikeEngine());
   const [playing, setPlaying] = useState(false);
+  const [reverb, setReverb] = useState(true);
   const [run, setRun] = useState<Run | null>(null);
   const [log, setLog] = useState<string[]>([]);
   const note = (line: string) => setLog((l) => [`${new Date().toLocaleTimeString()} ${line}`, ...l].slice(0, 30));
@@ -48,6 +49,13 @@ export default function App() {
     }
   };
 
+  const toggleReverb = () => {
+    const on = !reverb;
+    engine.current.setReverb(on);
+    setReverb(on);
+    note(`reverb ${on ? 'on' : 'off'}`);
+  };
+
   const report = run && clockReport(run.samples);
   const drainPerHour =
     report && report.wallMinutes > 1 ? ((run.batteryStart - run.batteryNow) * 100 * 60) / report.wallMinutes : null;
@@ -58,6 +66,9 @@ export default function App() {
       <Text style={styles.help}>Press Play, lock the phone for 30 minutes, listen for gaps or clicks, then unlock and read the numbers.</Text>
       <Pressable style={[styles.button, playing && styles.buttonOn]} onPress={toggle}>
         <Text style={styles.buttonText}>{playing ? 'Stop' : 'Play'}</Text>
+      </Pressable>
+      <Pressable style={[styles.button, styles.secondary]} onPress={toggleReverb}>
+        <Text style={styles.secondaryText}>Reverb: {reverb ? 'On' : 'Off'}</Text>
       </Pressable>
       {report && (
         <View style={styles.box}>
@@ -84,6 +95,8 @@ const styles = StyleSheet.create({
   button: { backgroundColor: '#ffc933', borderRadius: 12, padding: 18, alignItems: 'center' },
   buttonOn: { backgroundColor: '#333' },
   buttonText: { color: '#000', fontSize: 20, fontWeight: '700' },
+  secondary: { backgroundColor: '#1a1a1a', padding: 12 },
+  secondaryText: { color: '#ffc933', fontSize: 16, fontWeight: '600' },
   box: { backgroundColor: '#0d0d0d', borderRadius: 12, padding: 16, gap: 6 },
   stat: { color: '#fff', fontSize: 16 },
   log: { flex: 1 },

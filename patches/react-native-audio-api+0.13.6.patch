@@ -1,0 +1,29 @@
+diff --git a/node_modules/react-native-audio-api/android/src/main/cpp/audioapi/android/core/AudioPlayer.cpp b/node_modules/react-native-audio-api/android/src/main/cpp/audioapi/android/core/AudioPlayer.cpp
+index 76c51aa..66eb486 100644
+--- a/node_modules/react-native-audio-api/android/src/main/cpp/audioapi/android/core/AudioPlayer.cpp
++++ b/node_modules/react-native-audio-api/android/src/main/cpp/audioapi/android/core/AudioPlayer.cpp
+@@ -31,10 +31,14 @@ AudioPlayer::AudioPlayer(
+ bool AudioPlayer::openAudioStream() {
+   AudioStreamBuilder builder;
+ 
+-  builder.setSharingMode(SharingMode::Exclusive)
++  // Noctívago patch: ambient playback runs with the screen off, where the
++  // low-latency path underruns (clicks). PowerSaving gets Android's deep buffer.
++  builder.setSharingMode(SharingMode::Shared)
++      ->setUsage(Usage::Media)
++      ->setContentType(ContentType::Music)
+       ->setFormat(AudioFormat::Float)
+       ->setFormatConversionAllowed(true)
+-      ->setPerformanceMode(PerformanceMode::LowLatency)
++      ->setPerformanceMode(PerformanceMode::PowerSaving)
+       ->setChannelCount(channelCount_)
+       ->setSampleRateConversionQuality(SampleRateConversionQuality::Medium)
+       ->setFramesPerDataCallback(RENDER_QUANTUM_SIZE)
+@@ -48,6 +52,7 @@ bool AudioPlayer::openAudioStream() {
+         ANDROID_LOG_ERROR, "AudioPlayer", "Failed to open stream: %s", oboe::convertToText(result));
+     return false;
+   }
++  mStream_->setBufferSizeInFrames(mStream_->getBufferCapacityInFrames());
+ 
+   buffer_ = std::make_shared<DSPAudioBuffer>(RENDER_QUANTUM_SIZE, channelCount_, sampleRate_);
+   isInitialized_.store(true, std::memory_order_release);
