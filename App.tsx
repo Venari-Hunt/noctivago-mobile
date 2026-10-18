@@ -5,6 +5,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AudioManager } from 'react-native-audio-api';
 import { clockReport, type ClockSample } from './src/spike/domain/clockCheck';
 import { SpikeEngine } from './src/spike/engine';
+import { useAutoUpdate } from './src/updates/useAutoUpdate';
 
 type Run = { samples: ClockSample[]; batteryStart: number; batteryNow: number };
 
@@ -12,6 +13,7 @@ export default function App() {
   const engine = useRef(new SpikeEngine());
   const [playing, setPlaying] = useState(false);
   const [reverb, setReverb] = useState(true);
+  const update = useAutoUpdate(playing);
   const [run, setRun] = useState<Run | null>(null);
   const [log, setLog] = useState<string[]>([]);
   const note = (line: string) => setLog((l) => [`${new Date().toLocaleTimeString()} ${line}`, ...l].slice(0, 30));
@@ -63,6 +65,7 @@ export default function App() {
   return (
     <View style={styles.page}>
       <Text style={styles.title}>Noctívago — background spike</Text>
+      <Text style={styles.version}>{update.label}{update.updateWaiting ? ' · new version ready, press Stop to load it' : ''}</Text>
       <Text style={styles.help}>Press Play, lock the phone for 30 minutes, listen for gaps or clicks, then unlock and read the numbers.</Text>
       <Pressable style={[styles.button, playing && styles.buttonOn]} onPress={toggle}>
         <Text style={styles.buttonText}>{playing ? 'Stop' : 'Play'}</Text>
@@ -91,6 +94,7 @@ export default function App() {
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: '#000', padding: 24, paddingTop: 64, gap: 16 },
   title: { color: '#ffc933', fontSize: 22, fontWeight: '700' },
+  version: { color: '#666', fontSize: 12 },
   help: { color: '#bbb', fontSize: 15 },
   button: { backgroundColor: '#ffc933', borderRadius: 12, padding: 18, alignItems: 'center' },
   buttonOn: { backgroundColor: '#333' },

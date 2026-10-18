@@ -2,7 +2,7 @@
   "expo": {
     "name": "Noctívago",
     "slug": "noctivago-mobile",
-    "version": "0.0.2",
+    "version": "0.0.3",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -52,6 +52,12 @@
         "projectId": "aa7d1962-ef66-48be-aa68-e0fecd3d54e0"
       }
     },
-    "owner": "venari-hunt"
+    "owner": "venari-hunt",
+    "updates": {
+      "url": "https://u.expo.dev/aa7d1962-ef66-48be-aa68-e0fecd3d54e0"
+    },
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    }
   }
 }
