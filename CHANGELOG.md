@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.0 — 2026-10-18
+
+- **Open with / Share:** tap a `.ncvpreset` file in WhatsApp, Gmail, Drive or a file manager and choose Noctívago, or use Share → Noctívago. The preset is imported and opens straight in the player. Android matches these files by type (`application/octet-stream`, zip) since `.ncvpreset` has no registered type, so Noctívago also appears for other unknown files; picking one shows "That file isn't a Noctívago preset."
+- Importing a preset with the same name as a saved one replaces it (re-sending an updated export, or tapping the file twice, no longer makes a copy).
+- Receiving shares uses `expo-sharing` (Expo marks it experimental); "Open with" uses Android intent filters in `app.json`. New native config, so this version needs a new APK.
+
 ## 0.1.2 — 2026-10-18
 
 - Fix: pausing with the screen off (lock-screen button, sleep timer ending) left the audio thread running, silent, at ~10% of one core until the screen came back on. The suspend after the fade used a JavaScript timer, which stalls while the screen is off; it now runs on the audio clock like the sleep timer.

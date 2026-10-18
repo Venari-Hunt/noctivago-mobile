@@ -57,6 +57,20 @@ export async function importFromPicker(): Promise<SavedPreset | null> {
   return importBytes(await picked.result.bytes());
 }
 
+// A file another app handed over ("Open with" or Share): a content:// or
+// file:// URI, readable right away.
+export async function importFromUri(uri: string): Promise<SavedPreset> {
+  let bytes: Uint8Array;
+  try {
+    bytes = await new File(uri).bytes();
+  } catch {
+    throw new Error("Couldn't read that file. Save it to the phone first, then use Import preset.");
+  }
+  return importBytes(bytes);
+}
+
+// Importing a preset with the same name as a saved one replaces it, so
+// re-sending an updated export (or tapping the file twice) never duplicates.
 export function importBytes(bytes: Uint8Array): SavedPreset {
   let entries: Record<string, Uint8Array>;
   try {
@@ -82,6 +96,9 @@ export function importBytes(bytes: Uint8Array): SavedPreset {
     });
     const saved: SavedPreset = { ...read.preset, id, master: 0.8, importedAt: now };
     savePreset(saved);
+    for (const old of listPresets()) {
+      if (old.id !== id && old.name === saved.name) deletePreset(old);
+    }
     return saved;
   } catch (e) {
     dir.delete();

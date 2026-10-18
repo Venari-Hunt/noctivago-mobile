@@ -6,6 +6,7 @@ Player-only Noctívago for phones: imports a preset exported by the desktop app 
 
 - `App.tsx` — two screens by state (preset list, player); no router.
 - `src/player/` — `storage.ts` (import a phone preset zip, saved presets in app storage), `engine.ts` (audio graph, lock-screen controls), `domain/` (pure rules: reading the preset file, clock check), `components/` (screens and small UI pieces).
+- `src/player/useIncomingPreset.ts` — files handed over by other apps ("Open with", Share); Android filters in `app.json`.
 - `src/updates/` — over-the-air update check.
 - `test/` — `node --test` unit tests for `domain/` code.
 
