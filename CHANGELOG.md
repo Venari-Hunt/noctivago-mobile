@@ -2,7 +2,8 @@
 
 ## 0.5.0 — 2026-10-18
 
-- **About half the memory:** the audio library copied each decoded clip whenever a player started it, so every loop sound sat in memory twice and every Random Interval / Scheduled shot made a fresh full copy (Beach: 514 MB measured against ~244 MB of audio). The phone now shares one copy. Shots with pitch correction still get a short-lived copy (the library needs a silent tail on those).
+- **Less memory:** the audio library copied each decoded clip whenever a player started it, so every loop sound sat in memory twice and every Random Interval / Scheduled shot made a fresh full copy. The phone now shares one copy. Shots with pitch correction still get a short-lived copy (the library needs a silent tail on those).
+- Measured on the owner's phone (Beach, all 18 sounds): 367 MB loaded and paused (the export's ~244 MB of audio plus the app itself), ~446 MB playing (peaks 483 MB, falls back as pitched-shot copies are freed; no growth over 5 minutes), 100% audio uptime. Before: 514 MB with only its loop sounds decoded.
 - Native change (patch in `patches/react-native-audio-api+0.13.6.patch`): needs the new APK, not an over-the-air update.
 
 ## 0.4.3 — 2026-10-18
