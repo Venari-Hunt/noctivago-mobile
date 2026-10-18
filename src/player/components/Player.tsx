@@ -4,6 +4,7 @@ import { BackHandler, Pressable, ScrollView, StyleSheet, Text, View } from 'reac
 import { clockReport, type ClockSample } from '../domain/clockCheck';
 import type { PlayerEngine } from '../engine';
 import { savePreset, type SavedPreset } from '../storage';
+import { SleepTimerRow } from './SleepTimerRow';
 import { VolumeRow } from './VolumeRow';
 import { colors, shared } from './theme';
 
@@ -24,6 +25,7 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [playing, setPlaying] = useState(false);
   const [run, setRun] = useState<Run | null>(null);
+  const [sleepEndsAt, setSleepEndsAt] = useState<number | null>(null);
   const playingRef = useRef(false);
 
   const setPlayingBoth = (on: boolean) => {
@@ -41,12 +43,25 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
   const pause = async () => {
     await engine.pause();
     setPlayingBoth(false);
+    setSleepEndsAt(null); // pausing turns the timer off
+  };
+  const pickSleep = async (minutes: number) => {
+    if (!playingRef.current) await play();
+    engine.setSleepTimer(minutes * 60);
+    setSleepEndsAt(Date.now() + minutes * 60000);
+  };
+  const sleepOff = () => {
+    engine.cancelSleepTimer(true);
+    setSleepEndsAt(null);
   };
 
   useEffect(() => {
     engine.onRemote = (cmd) => {
       if (cmd === 'play' && !playingRef.current) play().catch(() => {});
       if (cmd === 'pause' && playingRef.current) pause().catch(() => {});
+    };
+    engine.onSleepEnd = () => {
+      pause().catch(() => {});
     };
     engine
       .load(initial, (done, total) => setLoading(`Loading sounds… ${done} of ${total}`))
@@ -59,6 +74,7 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
     return () => {
       back.remove();
       engine.onRemote = () => {};
+      engine.onSleepEnd = () => {};
       engine.unload().catch(() => {});
       onPlayingChange(false);
     };
@@ -104,6 +120,12 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
       >
         <Text style={[shared.buttonText, playing && styles.onText]}>{loading ?? (playing ? 'Pause' : 'Play')}</Text>
       </Pressable>
+      <SleepTimerRow
+        endsAt={sleepEndsAt}
+        disabled={!!loading || !!error}
+        onPick={(m) => pickSleep(m).catch((e) => setError(String(e)))}
+        onOff={sleepOff}
+      />
       <VolumeRow
         label="Master volume"
         value={preset.master}

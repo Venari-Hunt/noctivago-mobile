@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.1 — 2026-10-18
+
+- Sleep timer on the player: Off, 15m, 30m, 45m, 1h, 1h 30m, 2h (the desktop's choices), with a countdown. The sound fades out over the last 30 seconds, then playback pauses. Picking a time while paused starts playing; pausing turns the timer off.
+- The fade and the stop are timed on the audio clock, not a JavaScript timer, because JavaScript timers stall while the screen is off.
+- JavaScript only: arrives over the air on 0.1.0 (same native fingerprint).
+
 ## 0.1.0 — 2026-10-17
 
 - The player (phase 3, first part) replaces the spike screen.

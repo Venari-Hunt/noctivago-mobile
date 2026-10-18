@@ -1,0 +1,19 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { countdown, fadePlan, presetLabel } from '../src/player/domain/sleepTimer.ts';
+
+test('fade takes the last 30 s, or half of a short timer', () => {
+  assert.deepEqual(fadePlan(900), { fadeStart: 870, end: 900 });
+  assert.deepEqual(fadePlan(20), { fadeStart: 10, end: 20 });
+});
+
+test('countdown reads like a clock', () => {
+  assert.equal(countdown(3909000), '1:05:09');
+  assert.equal(countdown(1781000), '29:41');
+  assert.equal(countdown(6200), '0:07');
+  assert.equal(countdown(-5), '0:00');
+});
+
+test('preset labels match the desktop buttons', () => {
+  assert.deepEqual([15, 60, 90, 120].map(presetLabel), ['15m', '1h', '1h 30m', '2h']);
+});
