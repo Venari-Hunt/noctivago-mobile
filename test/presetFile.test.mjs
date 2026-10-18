@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readPhonePreset, presetFolderName, clampVolume } from '../src/player/domain/presetFile.ts';
+import { readPhonePreset, presetFolderName, clampVolume, zipNameAsUtf8 } from '../src/player/domain/presetFile.ts';
 
 const manifest = (over = {}) =>
   JSON.stringify({
@@ -47,4 +47,14 @@ test('folder names are plain ASCII and unique per import', () => {
 test('volumes stay within 0..1', () => {
   assert.equal(clampVolume(-1), 0);
   assert.equal(clampVolume('x'), 0.7);
+});
+
+// Desktop exports before v0.1.269 left the zip's UTF-8 flag off (owner's
+// Rain Inside preset, 2026-10-18).
+test('zip names written as UTF-8 without the flag are read back', () => {
+  const garbled = Buffer.from('audio/Encampment ｜ Forest picolé.opus', 'utf8').toString('latin1');
+  assert.equal(zipNameAsUtf8(garbled), 'audio/Encampment ｜ Forest picolé.opus');
+  assert.equal(zipNameAsUtf8('audio/plain.opus'), 'audio/plain.opus');
+  assert.equal(zipNameAsUtf8('audio/Encampment ｜ Forest.opus'), 'audio/Encampment ｜ Forest.opus');
+  assert.equal(zipNameAsUtf8('audio/café.opus'), 'audio/café.opus'); // real Latin-1: not valid UTF-8
 });

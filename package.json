@@ -1,6 +1,6 @@
 {
   "name": "noctivago-mobile",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "main": "index.ts",
   "dependencies": {
     "@react-native-community/slider": "5.2.1",

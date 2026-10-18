@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.1 — 2026-10-18
+
+- Fix: a preset whose sound file names had an accent or a special character (é, ç, a wide "｜" bar) failed to import with "missing the audio for…". Desktop exports before v0.1.269 wrote those names without the zip's UTF-8 flag, so they were read as Latin-1; the phone now reads them back as UTF-8. Desktop v0.1.269 writes the flag.
+- JavaScript only: arrives over the air on 0.2.0.
+
 ## 0.4.0 — 2026-10-18
 
 - **Fluctuation plays** (phase 4, second part): a looping sound's slow volume, pitch and pan drift, with the desktop's own random walk (`src/shared/modulator.js`). The walk's targets are booked a minute ahead on the audio clock and topped up every 30 seconds, so drift keeps moving with the screen off.

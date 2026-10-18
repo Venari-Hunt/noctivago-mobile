@@ -1,6 +1,6 @@
 import { Directory, File, Paths } from 'expo-file-system';
 import { strFromU8, unzipSync } from 'fflate';
-import { MANIFEST_NAME, presetFolderName, readPhonePreset, type PhonePreset } from './domain/presetFile';
+import { MANIFEST_NAME, presetFolderName, readPhonePreset, zipNameAsUtf8, type PhonePreset } from './domain/presetFile';
 
 // Imported presets live in the app's own storage, one folder each:
 //   presets/<folder>/saved.json   SavedPreset (below)
@@ -74,7 +74,7 @@ export async function importFromUri(uri: string): Promise<SavedPreset> {
 export function importBytes(bytes: Uint8Array): SavedPreset {
   let entries: Record<string, Uint8Array>;
   try {
-    entries = unzipSync(bytes);
+    entries = Object.fromEntries(Object.entries(unzipSync(bytes)).map(([name, data]) => [zipNameAsUtf8(name), data]));
   } catch {
     throw new Error("That file isn't a Noctívago preset.");
   }
