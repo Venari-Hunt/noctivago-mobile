@@ -1,22 +1,22 @@
-// Overnight test, morning summary. Reads the phone's night log (the
-// `[nightlog]` lines the app prints to Android's log on start, saved with
-// `adb logcat -d -s ReactNativeJS:V > night-logcat.txt`) and, if given, the
-// PC poller's file (scripts/night-watch.mjs).
+// Overnight test, morning summary of the folder scripts/night-fetch.mjs
+// filled: the app's night log (logcat.txt) and Android's own records.
 //
-//   node scripts/night-report.mjs <night-logcat.txt> [night-watch.jsonl]
+//   node scripts/night-report.mjs <outDir>
 
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { clockReport } from '../src/player/domain/clockCheck.ts';
 import { parseNightLog } from '../src/player/domain/nightLog.ts';
 
-const [logcatPath, watchPath] = process.argv.slice(2);
-if (!logcatPath) {
-  console.error('usage: node scripts/night-report.mjs <night-logcat.txt> [night-watch.jsonl]');
+const [dir] = process.argv.slice(2);
+if (!dir) {
+  console.error('usage: node scripts/night-report.mjs <outDir>');
   process.exit(1);
 }
+const read = (name) => (existsSync(join(dir, name)) ? readFileSync(join(dir, name), 'utf8') : '');
 
 // Only the last printout: the app prints the whole log on every start.
-const printed = readFileSync(logcatPath, 'utf8')
+const printed = read('logcat.txt')
   .split('\n')
   .map((l) => /\[nightlog\] (\{.*\})/.exec(l)?.[1])
   .filter(Boolean)
@@ -80,19 +80,27 @@ for (const id of Object.keys(last.shots ?? {})) {
   console.log(`Sound ${id}: ${shots} shots, ${rebooks} safety re-books, ${quiet} of ${Math.max(ticks.length - 1, 0)} ten-minute stretches with no shot`);
 }
 
-if (watchPath) {
-  const polls = readFileSync(watchPath, 'utf8')
-    .split('\n')
-    .filter(Boolean)
-    .map((l) => JSON.parse(l));
-  const ok = polls.filter((p) => p.ok && p.pid);
-  console.log(`PC readings: ${ok.length} of ${polls.length} reached the app`);
-  if (ok.length) {
-    const pss = ok.map((p) => p.pssMb).filter((v) => v != null);
-    const cpu = ok.map((p) => p.cpu).filter((v) => v != null);
-    if (pss.length) console.log(`App memory: ${pss[0]} MB first, ${pss[pss.length - 1]} MB last, ${Math.max(...pss)} MB peak`);
-    if (cpu.length) console.log(`App CPU: ${(cpu.reduce((a, b) => a + b, 0) / cpu.length).toFixed(1)}% of one core on average`);
-    const pids = new Set(ok.map((p) => p.pid));
-    if (pids.size > 1) console.log(`Warning: the app restarted during the night (${pids.size} different processes)`);
-  }
-}
+// Android's records. CPU: time used by the process that played all night,
+// over how long it lived (a process younger than the night means a restart).
+const seconds = (t) => {
+  const [days, rest] = t.includes('-') ? t.split('-') : ['0', t];
+  return rest.split(':').reduce((acc, part) => acc * 60 + Number(part), 0) + Number(days) * 86400;
+};
+const ps = read('ps.txt').trim().split('\n')[1]?.trim().split(/\s+/);
+if (ps) {
+  const cpu = seconds(ps[1]);
+  const alive = seconds(ps[2]);
+  console.log(`App CPU: ${((cpu / alive) * 100).toFixed(1)}% of one core on average, process alive ${(alive / 3600).toFixed(1)} h`);
+  const nightHours = (last.wallMs - first.wallMs) / 3.6e6;
+  if (alive / 3600 < nightHours - 0.1) console.log('Warning: the process is younger than the night log; Android restarted the app');
+} else console.log('App CPU: the app was not running in the morning');
+
+const pss = /TOTAL: [\d.]+% \(([\d.]+[KMG]B)-([\d.]+[KMG]B)-([\d.]+[KMG]B)/.exec(read('procstats.txt'));
+console.log(pss ? `App memory (Android's record): ${pss[1]} min, ${pss[2]} average, ${pss[3]} peak` : 'App memory: no procstats total found (see procstats.txt)');
+
+const exits = read('exit-info.txt')
+  .split('\n')
+  .filter((l) => /timestamp=|reason=|description=/.test(l))
+  .slice(0, 6)
+  .map((l) => l.trim());
+if (exits.length) console.log(`Latest app exits (Android):\n  ${exits.join('\n  ')}`);

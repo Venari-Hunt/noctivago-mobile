@@ -3,7 +3,7 @@
 ## 0.4.3 — 2026-10-18
 
 - **Night log** for unattended overnight tests: every 10 minutes of playback (and on load, play, pause and sleep timer end) the app saves one line to its storage: time, audio clock, battery, charging, JavaScript memory, and per Random Interval / Scheduled sound the shots played and safety re-books. On start the app prints the saved log to Android's log, so it can be read back without anyone watching. Steps: `docs/night-test.md`.
-- `scripts/night-watch.mjs` (PC, every 10 minutes over Wi-Fi adb: battery, app memory and CPU, app restarts) and `scripts/night-report.mjs` (morning summary of both).
+- PC tools (not in the app): `scripts/night-fetch.mjs` reads it all back in the morning, the night log plus Android's own records (memory history, the app's CPU time and process age, why the app last stopped, battery accounting), so nothing has to run on the PC overnight; `scripts/night-report.mjs` summarizes them.
 - The 10-minute `[shots]` log line from 0.4.2 is replaced by the night log entry.
 - JavaScript only: arrives over the air on 0.2.0.
 
