@@ -17,7 +17,7 @@ type Props = {
 
 type Run = { samples: ClockSample[]; batteryStart: number; batteryNow: number };
 
-const LIVE_LATER = 'next update';
+const MODE_NOTE = { loop: undefined, scatter: 'Random Interval', scheduled: 'Scheduled' } as const;
 
 export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
   const [preset, setPreset] = useState(initial);
@@ -139,23 +139,19 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
         onDone={(v) => save(withMaster(v))}
       />
       <ScrollView contentContainerStyle={styles.sounds}>
-        {preset.sounds.map((s, i) => {
-          const live = s.playMode === 'loop';
-          return (
-            <VolumeRow
-              key={i}
-              label={s.name}
-              value={s.volume}
-              disabled={!live}
-              note={live ? undefined : `${s.playMode === 'scatter' ? 'Random Interval' : 'Scheduled'}: ${LIVE_LATER}`}
-              onChange={(v) => {
-                engine.setSoundVolume(i, v);
-                update(withSound(i, v));
-              }}
-              onDone={(v) => save(withSound(i, v))}
-            />
-          );
-        })}
+        {preset.sounds.map((s, i) => (
+          <VolumeRow
+            key={i}
+            label={s.name}
+            value={s.volume}
+            note={MODE_NOTE[s.playMode]}
+            onChange={(v) => {
+              engine.setSoundVolume(i, v);
+              update(withSound(i, v));
+            }}
+            onDone={(v) => save(withSound(i, v))}
+          />
+        ))}
       </ScrollView>
       {report && (
         <Text style={shared.small}>

@@ -6,20 +6,22 @@ import {
   type ConstantSourceNode,
   type GainNode,
 } from 'react-native-audio-api';
+import { syncShot, shotConfigOf } from './domain/shotPlan';
 import { fadePlan } from './domain/sleepTimer';
+import { ShotVoice } from './shotVoice';
 import { audioUri, type SavedPreset } from './storage';
 
 // Plays a phone preset like the desktop Mixer (docs/mobile.md, phase 3):
-// each loop sound is its baked clip looping whole → its volume → master →
-// sleep fade → out.
+// each sound's baked clip (looping whole, or as Random Interval / Scheduled
+// shots, shotVoice.ts) → its volume → master → sleep fade → out.
 // The clips already carry filters, pan and reverb, so the phone only mixes.
-// Random Interval and Scheduled sounds, Fluctuation, and the Sound Group /
-// whole-mix filters arrive in phase 4.
+// Fluctuation and the Sound Group / whole-mix filters arrive in phase 4
+// part 2.
 
 const FADE_SECONDS = 0.4; // play/pause fade, like the Mixer's start ramp
 const SLIDER_RAMP = 0.05;
 
-type Voice = { gain: GainNode; source: AudioBufferSourceNode };
+type Voice = { gain: GainNode; source?: AudioBufferSourceNode; shots?: ShotVoice };
 type Remote = 'play' | 'pause';
 
 export class PlayerEngine {
@@ -45,7 +47,7 @@ export class PlayerEngine {
     return this.ctx?.currentTime ?? 0;
   }
 
-  /** Decodes every loop clip and wires the graph, silent and suspended. */
+  /** Decodes every clip and wires the graph, silent and suspended. */
   async load(preset: SavedPreset, onProgress?: (done: number, total: number) => void) {
     await this.unload();
     const ctx = new AudioContext();
@@ -59,26 +61,42 @@ export class PlayerEngine {
     this.master = master;
     this.sleepGain = sleepGain;
 
-    const loops = preset.sounds.map((s, i) => [s, i] as const).filter(([s]) => s.playMode === 'loop');
-    let done = 0;
     // One at a time: each clip is decoded fully into memory, so decoding
     // them all at once could double the peak.
-    for (const [sound, i] of loops) {
+    for (const [i, sound] of preset.sounds.entries()) {
       const buffer = await ctx.decodeAudioData(audioUri(preset, i));
       if (this.ctx !== ctx) return; // unloaded while decoding
       const gain = ctx.createGain();
       gain.gain.value = sound.volume;
       gain.connect(master);
-      const source = ctx.createBufferSource();
-      source.buffer = buffer;
-      source.loop = true;
-      source.connect(gain);
-      source.start();
-      this.voices.set(i, { gain, source });
-      onProgress?.(++done, loops.length);
+      if (sound.playMode === 'loop') {
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+        source.loop = true;
+        source.connect(gain);
+        source.start();
+        this.voices.set(i, { gain, source });
+      } else {
+        const shots = new ShotVoice(ctx, buffer, gain, sound.playMode, shotConfigOf(preset.manifest, i, sound.playMode));
+        shots.sync = (voice, at) => this.syncGroup(voice, at);
+        this.voices.set(i, { gain, shots });
+      }
+      onProgress?.(i + 1, preset.sounds.length);
     }
     await ctx.suspend();
     this.listen();
+  }
+
+  // A sound in a sync group fires with the others (domain/shotPlan.ts).
+  private syncGroup(voice: ShotVoice, at: number): number {
+    const group = voice.syncGroup;
+    if (!group) return at;
+    const others = [...this.voices.values()]
+      .map((v) => v.shots)
+      .filter((s): s is ShotVoice => !!s && s !== voice && s.syncGroup === group);
+    const plan = syncShot(at, others);
+    others.forEach((s, k) => plan.fire[k] && s.plan(plan.at, true));
+    return plan.at;
   }
 
   private listen() {
@@ -99,6 +117,8 @@ export class PlayerEngine {
     if (!ctx || !master) return;
     this.suspendMarker = dropMarker(this.suspendMarker);
     await ctx.resume();
+    // Random Interval fires on Play; Scheduled re-aims at the wall clock.
+    this.voices.forEach((v) => v.shots?.restart());
     const now = ctx.currentTime;
     this.sleepGain?.gain.setValueAtTime(1, now); // master is silent here
     master.gain.cancelScheduledValues(now);
@@ -195,7 +215,10 @@ export class PlayerEngine {
     this.cancelSleepTimer();
     this.subs.forEach((s) => s.remove());
     this.subs = [];
-    this.voices.forEach((v) => v.source.stop());
+    this.voices.forEach((v) => {
+      v.source?.stop();
+      v.shots?.dispose();
+    });
     this.voices.clear();
     const ctx = this.ctx;
     this.ctx = null;

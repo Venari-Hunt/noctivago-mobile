@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.0 — 2026-10-18
+
+- **Random Interval and Scheduled sounds play** (phase 4, first part). Each shot gets the desktop's own random pitch, speed, volume, pan and fades; Random Interval waits its random gap after each shot and fires right away on Play, Scheduled plays at its clock times. "Sync it up with" groups fire together.
+- Shots are timed on the audio clock, planned one ahead, so they keep firing with the screen off (JavaScript timers stall then).
+- Pitch keeps the shot's length like the desktop, using the audio library's built-in time-stretch, only on shots that are actually pitched. Speed is tape-style (pitch rides along), as on the desktop.
+- Per-shot pan uses Android's standard stereo panner, so a hard-panned shot is a little louder than on the desktop (up to +3 dB for a mono sound).
+- The shot rules are the desktop's own `src/shared/shotRules.js` and `modulator.js`, copied into `src/shared/` by `node scripts/sync-shared.mjs`; `npm test` fails if the copies drift.
+- JavaScript only: arrives over the air on 0.2.0.
+
 ## 0.2.0 — 2026-10-18
 
 - **Open with / Share:** tap a `.ncvpreset` file in WhatsApp, Gmail, Drive or a file manager and choose Noctívago, or use Share → Noctívago. The preset is imported and opens straight in the player. Android matches these files by type (`application/octet-stream`, zip) since `.ncvpreset` has no registered type, so Noctívago also appears for other unknown files; picking one shows "That file isn't a Noctívago preset."
