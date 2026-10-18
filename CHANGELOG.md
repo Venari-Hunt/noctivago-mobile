@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.6.0 — 2026-10-18
+
+- **Your own sounds** (phone Mixer, phase 6): the home screen has two tabs, **Mixes** (your presets) and **Sounds** (your library). **Add sounds** opens the file picker and takes several files at once (MP3, WAV, FLAC, OGG, Opus, M4A, AAC, AIFF). You can also share audio files to Noctívago from another app, or pick it in "Open with"; one file or several. Each file is copied into the app, so moving or deleting the original doesn't break it.
+- Sounds are named after their file (accents kept). When Android hands over only an internal id ("Open with" from the media store), the sound is called "Sound"; hold it to rename.
+- Library: tap a sound to hear it on a loop, tap again to stop. Hold it to rename, edit tags or delete. Search finds names and tags (ignores case and accents); sort by newest, name or length. Sounds over 10 minutes are marked, since they use a lot of memory while playing.
+- Building a mix from your sounds comes next (phase 7).
+- Native change (Android share and "Open with" for audio): needs the new APK, not an over-the-air update.
+- Tested on the owner's phone: picker with several files, Share, "Open with" (sounds and presets), preview, rename, tags, search, sort, delete, and the library surviving an app restart.
+- CI on GitHub: typecheck and tests on every pull request, with the desktop repo checked out alongside so the shared-rules check runs too.
+
 ## 0.5.0 — 2026-10-18
 
 - **First public release** on GitHub Releases (preview APK). README, and the license is now Apache-2.0 like the desktop app (it was Expo's template file).

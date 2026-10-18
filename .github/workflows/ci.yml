@@ -1,0 +1,29 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [master]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: noctivago-mobile
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: noctivago-mobile
+      # Side by side, like on the PC, so test/shared.test.mjs checks the
+      # src/shared/ copies against the desktop's.
+      - uses: actions/checkout@v4
+        with:
+          repository: Venari-Hunt/Noctivago
+          path: noctivago
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: noctivago-mobile/package-lock.json
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npm test
