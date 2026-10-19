@@ -18,5 +18,8 @@ export const shared = StyleSheet.create({
   help: { color: colors.dim, fontSize: 15 },
   button: { backgroundColor: colors.accent, borderRadius: 12, padding: 18, alignItems: 'center' },
   buttonText: { color: '#000', fontSize: 20, fontWeight: '700' },
+  /** The outlined button next to or under a main one. */
+  secondary: { borderColor: colors.accent, borderWidth: 1, borderRadius: 12, padding: 14, alignItems: 'center', justifyContent: 'center' },
+  secondaryText: { color: colors.accent, fontSize: 17, fontWeight: '600' },
   error: { color: colors.danger, fontSize: 15 },
 });

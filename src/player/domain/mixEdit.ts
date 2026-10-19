@@ -1,0 +1,159 @@
+// Building a mix on the phone: a new empty mix, adding your own sounds,
+// turning one off, removing one, and the manifest a shared mix carries.
+// Saved mixes keep the phone preset format (presetFile.ts), so a shared one
+// imports on the desktop too. Pure, so `npm test` can load it.
+import { PRESET_FORMAT, SUPPORTED_PHONE_VERSION, type PhonePreset, type PhoneSound } from './presetFile.ts';
+
+type Bag = Record<string, unknown>;
+
+/** The desktop's default volume for a sound added to a preset. */
+export const NEW_SOUND_VOLUME = 0.7;
+
+// What the desktop imports (its library's AUDIO_EXTENSIONS); a sound in
+// another format still shares, but the desktop skips its audio.
+export const DESKTOP_EXTENSIONS = ['mp3', 'wav', 'ogg', 'flac', 'm4a', 'opus'];
+
+/** The sound's audio file in its preset's audio folder. Imports before
+ * 0.7.0 stored them by position ("0.ogg") and have no `file`. */
+export function soundFile(sound: PhoneSound, index: number): string {
+  return sound.file ?? `${index}.ogg`;
+}
+
+// Pins every sound's file before the list changes order.
+export function withFiles<T extends PhonePreset>(preset: T): T {
+  return { ...preset, sounds: preset.sounds.map((s, i) => ({ ...s, file: soundFile(s, i) })) };
+}
+
+export function emptyManifest(name: string): Bag {
+  return {
+    format: PRESET_FORMAT,
+    formatVersion: 2,
+    phone: { version: SUPPORTED_PHONE_VERSION },
+    name,
+    wholeMix: null,
+    groups: [],
+    sounds: [],
+  };
+}
+
+function manifestSounds(manifest: Bag): Bag[] {
+  return Array.isArray(manifest.sounds) ? (manifest.sounds as Bag[]) : [];
+}
+
+// "New mix", "New mix 2"…: the first name no saved mix has.
+export function uniqueName(base: string, taken: string[]): string {
+  const used = new Set(taken.map((t) => t.toLowerCase()));
+  if (!used.has(base.toLowerCase())) return base;
+  let i = 2;
+  while (used.has(`${base} ${i}`.toLowerCase())) i++;
+  return `${base} ${i}`;
+}
+
+// A file name for a sound's audio, unique in its preset (ignoring case,
+// like the desktop's bundle names). It is also the sound's file name inside
+// a shared mix, so it stays readable and passes the desktop's import check
+// (no path characters, no "..").
+export function audioFileName(name: string, ext: string, taken: string[]): string {
+  const base =
+    name
+      .replace(/[\\/:*?"<>|\u0000-\u001f]/g, ' ')
+      .replace(/\.{2,}/g, '.')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 60)
+      .replace(/^\.+|\.+$/g, '') || 'Sound';
+  const used = new Set(taken.map((t) => t.toLowerCase()));
+  let candidate = `${base}.${ext}`;
+  for (let i = 1; used.has(candidate.toLowerCase()); i++) candidate = `${base} (${i}).${ext}`;
+  return candidate;
+}
+
+type NewSound = { name: string; fileName: string; durationSeconds: number | null };
+
+/** Adds one of your sounds at the end of the mix, as a plain loop. */
+export function appendSound<T extends PhonePreset>(preset: T, sound: NewSound, file: string): T {
+  const p = withFiles(preset);
+  const entry: PhoneSound = {
+    name: sound.name,
+    bundleName: file,
+    file,
+    volume: NEW_SOUND_VOLUME,
+    playMode: 'loop',
+    durationSeconds: sound.durationSeconds,
+  };
+  const raw: Bag = {
+    name: sound.name,
+    fileName: sound.fileName,
+    bundleName: file,
+    durationSeconds: sound.durationSeconds,
+    volume: NEW_SOUND_VOLUME,
+    settings: { playMode: 'loop' },
+    overrides: null,
+    source: null,
+  };
+  return { ...p, sounds: [...p.sounds, entry], manifest: { ...p.manifest, sounds: [...manifestSounds(p.manifest), raw] } };
+}
+
+// Removes sound `index`; Sound Group members after it move down one, and a
+// group left with no members is dropped (as the desktop's export does).
+export function removeSoundAt<T extends PhonePreset>(preset: T, index: number): T {
+  const p = withFiles(preset);
+  const groups = Array.isArray(p.manifest.groups) ? (p.manifest.groups as Bag[]) : [];
+  const nextGroups = groups
+    .map((g) => {
+      const members = Array.isArray(g?.soundIndexes) ? (g.soundIndexes as number[]) : [];
+      return { ...g, soundIndexes: members.filter((m) => m !== index).map((m) => (m > index ? m - 1 : m)) };
+    })
+    .filter((g) => g.soundIndexes.length > 0);
+  return {
+    ...p,
+    sounds: p.sounds.filter((_, i) => i !== index),
+    manifest: { ...p.manifest, groups: nextGroups, sounds: manifestSounds(p.manifest).filter((_, i) => i !== index) },
+  };
+}
+
+export function setSoundOn<T extends PhonePreset>(preset: T, index: number, on: boolean): T {
+  return { ...preset, sounds: preset.sounds.map((s, i) => (i === index ? { ...s, off: !on } : s)) };
+}
+
+export function renamed<T extends PhonePreset>(preset: T, name: string): T {
+  return { ...preset, name, manifest: { ...preset.manifest, name } };
+}
+
+/** The gain a sound plays at: its volume, or silence when turned off. */
+export function playedVolume(sound: PhoneSound): number {
+  return sound.off ? 0 : sound.volume;
+}
+
+/** What a shared mix holds: its manifest, and which audio file each zip
+ * entry comes from. Volumes and "off" are the phone's current ones. */
+export function shareManifest(preset: PhonePreset, nowIso: string): { manifest: Bag; audio: { zipName: string; file: string }[] } {
+  const raws = manifestSounds(preset.manifest);
+  const audio = preset.sounds.map((s, i) => ({ zipName: `audio/${soundFile(s, i)}`, file: soundFile(s, i) }));
+  const sounds = preset.sounds.map((s, i) => ({
+    ...raws[i],
+    name: s.name,
+    bundleName: soundFile(s, i),
+    volume: s.volume,
+    ...(s.off ? { off: true } : {}),
+  }));
+  const manifest = {
+    ...preset.manifest,
+    format: PRESET_FORMAT,
+    formatVersion: 2,
+    phone: { version: SUPPORTED_PHONE_VERSION },
+    exportedAt: nowIso,
+    name: preset.name,
+    sounds,
+  };
+  return { manifest, audio };
+}
+
+// Rough memory a mix takes while playing: every clip decoded to 32-bit
+// float stereo at the phone's rate (the desktop's export warning, ~300 MB).
+export const HEAVY_MIX_MB = 300;
+
+export function decodedMb(sounds: PhoneSound[], sampleRate = 48000): number {
+  const seconds = sounds.reduce((sum, s) => sum + (s.durationSeconds ?? 0), 0);
+  return (seconds * sampleRate * 2 * 4) / (1024 * 1024);
+}
