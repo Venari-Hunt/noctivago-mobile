@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.10.1 — 2026-10-19
+
+- **From a link** now works with sites that refuse unnamed downloaders, like Wikimedia Commons (they answered 403): downloads say they come from Noctívago.
+- JavaScript only: arrives over the air on 0.6.0.
+
 ## 0.10.0 — 2026-10-19
 
 - **Add a sound from a link** (phone Mixer, phase 10). In **Sounds**, tap **From a link** and paste a direct link to an audio file (MP3, WAV, FLAC, OGG, Opus, M4A). The file downloads into your library like a picked one; its name comes from the server or the link. "https://" can be left out.
