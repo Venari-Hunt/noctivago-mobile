@@ -4,8 +4,9 @@ Noctívago for phones: plays presets exported by the desktop app like the Mixer 
 
 ## Architecture
 
-- `App.tsx` — two screens by state (home, player); no router. Home (`src/home/`) has two tabs: Mixes (imported presets) and Sounds (the library).
+- `App.tsx` — two screens by state (home, player); no router. Home (`src/home/`) has three tabs: Mixes (imported presets), Sounds (the library) and Community.
 - `src/library/` — your own sounds: `storage.ts` (copies added files into app storage; downloads a direct link, rules in `domain/link.ts`), `freesound.ts` (Browse Freesound: search and add previews with their credit; rules in `domain/freesound.ts`; key from the EAS variable `EXPO_PUBLIC_FREESOUND_API_KEY`), `preview.ts` (listen to one, or a web link), `domain/library.ts` (search, sort, tags, names), `components/`.
+- `src/community/` — Community tab: browse and download presets shared from the PC (`client.ts`; rules in `domain/community.ts`). A community file carries a baked phone copy under `phone/`; `player/storage.importBytes` imports that copy.
 - `src/ui/` — small shared pieces (`Choice` pills, `TextPrompt` dialog, `ActionMenu` for hold menus, `SliderRow` for every slider).
 - `src/player/` — `storage.ts` (import a phone preset zip, saved mixes in app storage, new/copy/rename, add library sounds, share file), `domain/mixEdit.ts` (pure mix edits: add, remove, turn off, share manifest), `domain/groupEdit.ts` (Sound Groups: members, filters, drift; edited in `components/GroupSheet.tsx`), `engine.ts` (audio graph, lock-screen controls), `domain/` (pure rules: reading the preset file, clock check), `components/` (screens and small UI pieces).
 - `src/player/shotVoice.ts` — Random Interval / Scheduled shots, planned one ahead on the audio clock; the engine re-books a dropped one once a minute (`check()`).

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.12.0 — 2026-10-19
+
+- **Community tab** (phone Mixer, phase 10). Browse the presets people shared from the PC app: search, Newest or Popular, Load more. Each shows its author, sound count, size and downloads. Tap one, confirm, and it downloads into **Mixes** and opens in the player.
+- It plays the preset exactly as the PC does: since PC version 0.1.270, a shared preset carries a ready-to-play phone copy with every effect applied. Presets shared before that say to ask the author to share again.
+- The whole file downloads (the PC's copy too, Beach is about 46 MB), but only the phone copy is kept.
+- Opening a community file from another app ("Open with") works the same way.
+- JavaScript only: arrives over the air on 0.6.0.
+
 ## 0.11.0 — 2026-10-19
 
 - **Browse Freesound** (phone Mixer, phase 10). In **Sounds**, tap **Browse Freesound**, type what you want (rain, birds, fireplace…) and search. Each result shows its length, author and license. Tap one to listen, tap **Add** to keep it in your sounds; **Load more** brings the next 15. Hold a result to open its page on freesound.org.
