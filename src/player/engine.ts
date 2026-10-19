@@ -7,12 +7,13 @@ import {
   type GainNode,
 } from 'react-native-audio-api';
 import { playedVolume, soundFile } from './domain/mixEdit';
-import { groupBusSpecs, groupIndexOf, shotSettings, soundFluctuation, wholeMixFadeIn, wholeMixSpec } from './domain/mixPlan';
+import { groupBusSpecs, groupIndexOf, loopFade, shotSettings, soundFluctuation, wholeMixFadeIn, wholeMixSpec } from './domain/mixPlan';
 import { syncShot } from './domain/shotPlan';
 import { fadePlan } from './domain/sleepTimer';
 import { MixBus, SoundDrift, type ParamDrift } from './mixGraph';
 import type { NightEntry } from './domain/nightLog';
 import { recordNight } from './nightLog';
+import { seamlessBuffer } from './seamless';
 import { ShotVoice } from './shotVoice';
 import { audioUri, type SavedPreset } from './storage';
 
@@ -123,7 +124,7 @@ export class PlayerEngine {
     const key = soundFile(sound, index);
     if (sound.playMode === 'loop') {
       const source = ctx.createBufferSource();
-      source.buffer = buffer;
+      source.buffer = seamlessBuffer(ctx, buffer, loopFade(manifest, index, buffer.duration));
       source.loop = true;
       const drift = new SoundDrift(ctx, source.detune, soundFluctuation(manifest, index), gain);
       source.connect(drift.input);

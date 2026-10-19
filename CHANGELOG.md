@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.0 — 2026-10-19
+
+- **Seamless loops for your own sounds** (phone Mixer, phase 8). A sound added on the phone no longer jumps or clicks where it wraps around: like the desktop's "Prepare seamless looping", the end is blended into the start with a 0.2 s equal-power crossfade, and the loop starts mid-clip so the wrap itself is continuous. The loop gets 0.2 s shorter.
+- Applies to every phone-added sound in a mix and to the Sounds tab preview. It happens when the mix loads (no new files, no conversion). Presets exported from the PC are already seamless and play as before.
+- A shared mix sounds the same on the PC: the PC gives these sounds the same 0.2 s crossfade on import.
+- JavaScript only: arrives over the air on 0.6.0.
+
 ## 0.7.0 — 2026-10-18
 
 - **Build your own mixes** (phone Mixer, phase 7). In Mixes, **New mix** starts an empty mix and opens it. In a mix, **Add sounds** picks sounds from your library (search, several at once), or **From files on this phone** adds new ones to the library and picks them in one go. A sound added while the mix plays fades in; no reload.

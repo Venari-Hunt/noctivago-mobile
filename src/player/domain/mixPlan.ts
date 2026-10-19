@@ -5,6 +5,7 @@
 // `npm test` can load it.
 import { eqBandStageCount, eqNodeType } from '../../shared/eqBands.js';
 import { applyGroupShotOverride, busFluctuation, effectiveMemberFluctuation } from '../../shared/groupDrift.js';
+import { loopFadeSeconds } from './seamlessLoop.ts';
 
 type Bag = Record<string, unknown>;
 
@@ -61,6 +62,11 @@ function settingsOf(manifest: Bag, index: number): Bag {
 /** A looping sound's own drift, after its group's rules. */
 export function soundFluctuation(manifest: Bag, index: number): Bag | null {
   return effectiveMemberFluctuation(settingsOf(manifest, index).fluctuation ?? null, groupFluctuation(manifest, index));
+}
+
+/** A looping sound's seam crossfade in seconds (seamlessLoop.ts); 0 for desktop exports. */
+export function loopFade(manifest: Bag, index: number, durationSeconds: number): number {
+  return loopFadeSeconds(settingsOf(manifest, index), durationSeconds);
 }
 
 /** A Random Interval / Scheduled sound's live config, after its group's rules. */
