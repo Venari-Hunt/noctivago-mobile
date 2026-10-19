@@ -95,7 +95,8 @@ if (ps) {
   if (alive / 3600 < nightHours - 0.1) console.log('Warning: the process is younger than the night log; Android restarted the app');
 } else console.log('App CPU: the app was not running in the morning');
 
-const pss = /TOTAL: [\d.]+% \(([\d.]+[KMG]B)-([\d.]+[KMG]B)-([\d.]+[KMG]B)/.exec(read('procstats.txt'));
+// The phone's locale may write decimals with a comma ("1,0GB").
+const pss = /TOTAL: [\d.,]+% \(([\d.,]+[KMG]B)-([\d.,]+[KMG]B)-([\d.,]+[KMG]B)/.exec(read('procstats.txt'));
 console.log(pss ? `App memory (Android's record): ${pss[1]} min, ${pss[2]} average, ${pss[3]} peak` : 'App memory: no procstats total found (see procstats.txt)');
 
 const exits = read('exit-info.txt')
