@@ -2,7 +2,7 @@
   "expo": {
     "name": "Noctívago",
     "slug": "noctivago-mobile",
-    "version": "0.12.1",
+    "version": "0.13.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -23,7 +23,8 @@
         "android.permission.MODIFY_AUDIO_SETTINGS",
         "android.permission.FOREGROUND_SERVICE",
         "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
-        "android.permission.POST_NOTIFICATIONS"
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.RECORD_AUDIO"
       ],
       "intentFilters": [
         {
@@ -125,6 +126,7 @@
         "react-native-audio-api",
         {
           "iosBackgroundMode": true,
+          "iosMicrophonePermission": "Noctívago records sounds with the microphone when you tap Record.",
           "androidForegroundService": true,
           "androidFSTypes": [
             "mediaPlayback"
@@ -133,7 +135,8 @@
             "android.permission.MODIFY_AUDIO_SETTINGS",
             "android.permission.FOREGROUND_SERVICE",
             "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
-            "android.permission.POST_NOTIFICATIONS"
+            "android.permission.POST_NOTIFICATIONS",
+        "android.permission.RECORD_AUDIO"
           ]
         }
       ],

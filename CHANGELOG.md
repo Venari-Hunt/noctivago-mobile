@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.13.0 — 2026-10-19
+
+- **Record a sound with the microphone** (phone Mixer, phase 10). In **Sounds**, tap **Record**, then **Start**. A red dot and a clock show it's recording; tap **Stop**, type a name (or leave it empty to name it by the date) and tap **Save**. **Record again** throws the take away and starts over. It lands in your sounds like any added file and can go in a mix.
+- The first time, Android asks to allow the microphone. If you said no, the sheet says where to turn it back on.
+- Recordings are mono M4A (128 kbps) and stop by themselves after an hour. Keep the screen on while recording.
+- **Needs the new 0.13.0 APK** (the microphone permission is native); it does not arrive over the air.
+
 ## 0.12.1 — 2026-10-19
 
 - **Community downloads are much smaller**: the phone now fetches only the preset's phone copy, not the PC's files too (Beach: about 7 MB instead of 46 MB). This needs the updated community server; until it's live, the phone downloads the whole file as before.
