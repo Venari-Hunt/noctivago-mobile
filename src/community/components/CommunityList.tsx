@@ -59,7 +59,7 @@ export function CommunityList({ onOpen }: Props) {
 
   const download = (p: CommunityPreset) => {
     const size = formatSize(p.sizeBytes);
-    Alert.alert(`Download "${p.name}"?`, `${size ? `${size} to download. ` : ''}It goes into Mixes and starts in the player.`, [
+    Alert.alert(`Download "${p.name}"?`, `${size ? `Up to ${size} to download (only its phone copy, usually much less). ` : ''}It goes into Mixes and starts in the player.`, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Download',

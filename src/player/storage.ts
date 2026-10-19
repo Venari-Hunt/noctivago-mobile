@@ -13,7 +13,7 @@ import {
   uniqueName,
   withFiles,
 } from './domain/mixEdit';
-import { isPhoneManifest, NO_PHONE_COPY, phoneLayer, wantedEntry } from '../community/domain/community';
+import { isPhoneManifest, phoneLayer } from '../community/domain/community';
 import { MANIFEST_NAME, presetFolderName, readPhonePreset, zipNameAsUtf8, type PhonePreset } from './domain/presetFile';
 
 // Mixes (imported or made on the phone) live in the app's own storage, one
@@ -172,19 +172,23 @@ function storedName(entry: string, index: number): string {
 // Importing a preset with the same name as a saved one replaces it, so
 // re-sending an updated export (or tapping the file twice) never duplicates.
 // A community file carries a phone copy under phone/ (`community/domain`):
-// that copy is what gets imported. `onlyPhoneCopy` (community downloads)
-// unzips just that part, so the PC's own audio never fills memory.
-export function importBytes(bytes: Uint8Array, { onlyPhoneCopy = false } = {}): SavedPreset {
+// that copy is what gets imported. (The Community tab downloads only that
+// part: `community/domain/partial.ts`.)
+export function importBytes(bytes: Uint8Array): SavedPreset {
   let entries: Record<string, Uint8Array>;
   try {
-    const filter = onlyPhoneCopy ? (f: { name: string }) => wantedEntry(zipNameAsUtf8(f.name)) : undefined;
-    entries = Object.fromEntries(Object.entries(unzipSync(bytes, { filter })).map(([name, data]) => [zipNameAsUtf8(name), data]));
+    entries = Object.fromEntries(Object.entries(unzipSync(bytes)).map(([name, data]) => [zipNameAsUtf8(name), data]));
   } catch {
     throw new Error("That file isn't a Noctívago preset.");
   }
   const layer = phoneLayer(entries, isPhoneManifest, strFromU8);
   if (layer) entries = layer;
-  else if (onlyPhoneCopy) throw new Error(NO_PHONE_COPY);
+  return importEntries(entries);
+}
+
+// Saves a phone preset from its unpacked files (preset.json + audio/), names
+// already fixed with `zipNameAsUtf8`.
+export function importEntries(entries: Record<string, Uint8Array>): SavedPreset {
   const manifestEntry = entries[MANIFEST_NAME] ?? entries[`./${MANIFEST_NAME}`];
   if (!manifestEntry) throw new Error("That file isn't a Noctívago preset.");
   const read = readPhonePreset(strFromU8(manifestEntry), Object.keys(entries));
