@@ -1,4 +1,6 @@
 import { AudioContext, type AudioBufferSourceNode, type GainNode } from 'react-native-audio-api';
+import { loopFadeSeconds } from '../player/domain/seamlessLoop';
+import { seamlessBuffer } from '../player/seamless';
 import type { LibrarySound } from './domain/library';
 import { soundAudioUri } from './storage';
 
@@ -26,7 +28,8 @@ export class PreviewPlayer {
     gain.gain.value = 0;
     gain.connect(ctx.destination);
     const source = ctx.createBufferSource();
-    source.buffer = buffer;
+    // Loops seamlessly, as it will once added to a mix.
+    source.buffer = seamlessBuffer(ctx, buffer, loopFadeSeconds(null, buffer.duration));
     source.loop = true;
     source.connect(gain);
     source.start();
