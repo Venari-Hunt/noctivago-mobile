@@ -18,11 +18,16 @@ export class PreviewPlayer {
   current: string | null = null;
 
   async play(sound: LibrarySound) {
+    await this.playUri(sound.id, soundAudioUri(sound));
+  }
+
+  /** Any file or web link (a Freesound preview before it is added). */
+  async playUri(id: string, uri: string) {
     await this.stop();
-    this.current = sound.id;
+    this.current = id;
     const ctx = new AudioContext();
     this.ctx = ctx;
-    const buffer = await ctx.decodeAudioData(soundAudioUri(sound));
+    const buffer = await ctx.decodeAudioData(uri);
     if (this.ctx !== ctx) return; // stopped while decoding
     const gain = ctx.createGain();
     gain.gain.value = 0;

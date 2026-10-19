@@ -1,6 +1,8 @@
 // The phone's sound library: sounds you add yourself, before they go into a
 // mix. Pure rules, no files or audio, so `npm test` can load it.
 
+import type { FreesoundSource } from './freesound';
+
 export type LibrarySound = {
   id: string;
   name: string;
@@ -11,6 +13,8 @@ export type LibrarySound = {
   tags: string[];
   durationSeconds: number | null;
   addedAt: number;
+  /** Where it came from, when that needs crediting (Freesound). */
+  source?: FreesoundSource | null;
 };
 
 export type SortBy = 'newest' | 'name' | 'length';
