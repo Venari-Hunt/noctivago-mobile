@@ -15,8 +15,8 @@ export function presetLabel(minutes: number): string {
 
 // When to start fading and when the fade reaches silence, in seconds from
 // now. Short timers fade over their second half.
-export function fadePlan(seconds: number): { fadeStart: number; end: number } {
-  const fade = Math.min(FADE_SECONDS, seconds / 2);
+export function fadePlan(seconds: number, fadeSeconds = FADE_SECONDS): { fadeStart: number; end: number } {
+  const fade = Math.min(fadeSeconds, seconds / 2);
   return { fadeStart: seconds - fade, end: seconds };
 }
 

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { colors, shared } from '../../player/components/theme';
 import { Choice } from '../../ui/Choice';
+import { useSettings } from '../../settings/store';
 import { TextPrompt } from '../../ui/TextPrompt';
 import { addSummary, filterSounds, parseTags, sortSounds, type LibrarySound, type SortBy } from '../domain/library';
 import { checkLink } from '../domain/link';
@@ -27,6 +28,7 @@ const SORTS: { value: SortBy; label: string }[] = [
 ];
 
 export function SoundLibrary({ preview, version }: Props) {
+  const { browseSounds } = useSettings();
   const [sounds, setSounds] = useState(listSounds);
   const [query, setQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortBy>('newest');
@@ -164,7 +166,7 @@ export function SoundLibrary({ preview, version }: Props) {
         <Pressable style={[shared.secondary, styles.half, busy && styles.busy]} onPress={record} disabled={!!busy}>
           <Text style={shared.secondaryText}>Record</Text>
         </Pressable>
-        {isFreesoundAvailable() && (
+        {browseSounds && isFreesoundAvailable() && (
           <Pressable style={[shared.secondary, styles.half, busy && styles.busy]} onPress={browse} disabled={!!busy}>
             <Text style={shared.secondaryText}>Browse Freesound</Text>
           </Pressable>

@@ -71,13 +71,13 @@ export function audioFileName(name: string, ext: string, taken: string[]): strin
 type NewSound = { name: string; fileName: string; durationSeconds: number | null; source?: object | null };
 
 /** Adds one of your sounds at the end of the mix, as a plain loop. */
-export function appendSound<T extends PhonePreset>(preset: T, sound: NewSound, file: string): T {
+export function appendSound<T extends PhonePreset>(preset: T, sound: NewSound, file: string, volume = NEW_SOUND_VOLUME): T {
   const p = withFiles(preset);
   const entry: PhoneSound = {
     name: sound.name,
     bundleName: file,
     file,
-    volume: NEW_SOUND_VOLUME,
+    volume,
     playMode: 'loop',
     durationSeconds: sound.durationSeconds,
   };
@@ -86,7 +86,7 @@ export function appendSound<T extends PhonePreset>(preset: T, sound: NewSound, f
     fileName: sound.fileName,
     bundleName: file,
     durationSeconds: sound.durationSeconds,
-    volume: NEW_SOUND_VOLUME,
+    volume,
     settings: { playMode: 'loop' },
     overrides: null,
     // The desktop's credit record (Freesound author and license), so a
