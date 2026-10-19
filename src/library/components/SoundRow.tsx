@@ -14,7 +14,8 @@ type Props = {
 export function SoundRow({ sound, previewing, selected, onPress, onLongPress }: Props) {
   const length = formatLength(sound.durationSeconds);
   const long = (sound.durationSeconds ?? 0) > LONG_SOUND_SECONDS;
-  const details = [length, sound.tags.join(', ')].filter(Boolean).join(' · ');
+  const credit = sound.source?.username ? `by ${sound.source.username}` : '';
+  const details = [length, credit, sound.tags.join(', ')].filter(Boolean).join(' · ');
   const picking = selected !== undefined;
   const on = picking ? selected : previewing;
   const label = picking

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.11.0 — 2026-10-19
+
+- **Browse Freesound** (phone Mixer, phase 10). In **Sounds**, tap **Browse Freesound**, type what you want (rain, birds, fireplace…) and search. Each result shows its length, author and license. Tap one to listen, tap **Add** to keep it in your sounds; **Load more** brings the next 15. Hold a result to open its page on freesound.org.
+- Added sounds are Freesound's 128 kbps MP3 preview, the same file the PC app uses, and get the sound's first five tags. Their row says who made them, and a shared mix keeps the author and license, so the PC credits them too.
+- JavaScript only: arrives over the air on 0.6.0.
+
 ## 0.10.1 — 2026-10-19
 
 - **From a link** now works with sites that refuse unnamed downloaders, like Wikimedia Commons (they answered 403): downloads say they come from Noctívago.

@@ -6,7 +6,9 @@ import { TextPrompt } from '../../ui/TextPrompt';
 import { addSummary, filterSounds, parseTags, sortSounds, type LibrarySound, type SortBy } from '../domain/library';
 import { checkLink } from '../domain/link';
 import type { PreviewPlayer } from '../preview';
+import { isFreesoundAvailable } from '../freesound';
 import { addFromLink, addFromPicker, deleteSound, listSounds, saveSound, type AddResult } from '../storage';
+import { FreesoundBrowser } from './FreesoundBrowser';
 import { SoundRow } from './SoundRow';
 
 type Props = {
@@ -32,6 +34,7 @@ export function SoundLibrary({ preview, version }: Props) {
   const [previewing, setPreviewing] = useState<string | null>(null);
   const [prompt, setPrompt] = useState<Prompt>(null);
   const [askingLink, setAskingLink] = useState(false);
+  const [browsing, setBrowsing] = useState(false);
 
   const reload = () => setSounds(listSounds());
   useEffect(reload, [version]);
@@ -70,6 +73,13 @@ export function SoundLibrary({ preview, version }: Props) {
       return;
     }
     runAdd('Downloading…', () => addFromLink(link.url));
+  };
+
+  const browse = async () => {
+    setNote(null);
+    setPreviewing(null);
+    await preview.stop();
+    setBrowsing(true);
   };
 
   const togglePreview = async (sound: LibrarySound) => {
@@ -141,6 +151,11 @@ export function SoundLibrary({ preview, version }: Props) {
           <Text style={shared.secondaryText}>From a link</Text>
         </Pressable>
       </View>
+      {isFreesoundAvailable() && (
+        <Pressable style={[shared.secondary, busy && styles.busy]} onPress={browse} disabled={!!busy}>
+          <Text style={shared.secondaryText}>Browse Freesound</Text>
+        </Pressable>
+      )}
       {note && <Text style={note.error ? shared.error : styles.note}>{note.text}</Text>}
       {sounds.length > 0 && (
         <>
@@ -164,7 +179,7 @@ export function SoundLibrary({ preview, version }: Props) {
           <Text style={shared.help}>
             {sounds.length > 0
               ? 'No sound matches that search.'
-              : 'Tap Add sounds and pick audio files from this phone (MP3, WAV, FLAC, OGG, Opus, M4A). From a link takes a direct link to an audio file. You can also share a file to Noctívago from another app. Tap a sound to listen; hold it to rename, tag or delete.'}
+              : 'Tap Add sounds and pick audio files from this phone (MP3, WAV, FLAC, OGG, Opus, M4A). From a link takes a direct link to an audio file; Browse Freesound searches free sounds online. You can also share a file to Noctívago from another app. Tap a sound to listen; hold it to rename, tag or delete.'}
           </Text>
         }
         renderItem={({ item }) => (
@@ -186,6 +201,7 @@ export function SoundLibrary({ preview, version }: Props) {
         onOk={addLink}
         onCancel={() => setAskingLink(false)}
       />
+      {browsing && <FreesoundBrowser preview={preview} onClose={() => setBrowsing(false)} onAdded={reload} />}
     </>
   );
 }

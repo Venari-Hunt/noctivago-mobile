@@ -68,7 +68,7 @@ export function audioFileName(name: string, ext: string, taken: string[]): strin
   return candidate;
 }
 
-type NewSound = { name: string; fileName: string; durationSeconds: number | null };
+type NewSound = { name: string; fileName: string; durationSeconds: number | null; source?: object | null };
 
 /** Adds one of your sounds at the end of the mix, as a plain loop. */
 export function appendSound<T extends PhonePreset>(preset: T, sound: NewSound, file: string): T {
@@ -89,7 +89,9 @@ export function appendSound<T extends PhonePreset>(preset: T, sound: NewSound, f
     volume: NEW_SOUND_VOLUME,
     settings: { playMode: 'loop' },
     overrides: null,
-    source: null,
+    // The desktop's credit record (Freesound author and license), so a
+    // shared mix still credits the sound.
+    source: sound.source ?? null,
   };
   return { ...p, sounds: [...p.sounds, entry], manifest: { ...p.manifest, sounds: [...manifestSounds(p.manifest), raw] } };
 }
