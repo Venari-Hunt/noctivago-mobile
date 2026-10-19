@@ -13,6 +13,7 @@ import {
   uniqueName,
   withFiles,
 } from './domain/mixEdit';
+import { isPhoneManifest, NO_PHONE_COPY, phoneLayer, wantedEntry } from '../community/domain/community';
 import { MANIFEST_NAME, presetFolderName, readPhonePreset, zipNameAsUtf8, type PhonePreset } from './domain/presetFile';
 
 // Mixes (imported or made on the phone) live in the app's own storage, one
@@ -170,13 +171,20 @@ function storedName(entry: string, index: number): string {
 
 // Importing a preset with the same name as a saved one replaces it, so
 // re-sending an updated export (or tapping the file twice) never duplicates.
-export function importBytes(bytes: Uint8Array): SavedPreset {
+// A community file carries a phone copy under phone/ (`community/domain`):
+// that copy is what gets imported. `onlyPhoneCopy` (community downloads)
+// unzips just that part, so the PC's own audio never fills memory.
+export function importBytes(bytes: Uint8Array, { onlyPhoneCopy = false } = {}): SavedPreset {
   let entries: Record<string, Uint8Array>;
   try {
-    entries = Object.fromEntries(Object.entries(unzipSync(bytes)).map(([name, data]) => [zipNameAsUtf8(name), data]));
+    const filter = onlyPhoneCopy ? (f: { name: string }) => wantedEntry(zipNameAsUtf8(f.name)) : undefined;
+    entries = Object.fromEntries(Object.entries(unzipSync(bytes, { filter })).map(([name, data]) => [zipNameAsUtf8(name), data]));
   } catch {
     throw new Error("That file isn't a Noctívago preset.");
   }
+  const layer = phoneLayer(entries, isPhoneManifest, strFromU8);
+  if (layer) entries = layer;
+  else if (onlyPhoneCopy) throw new Error(NO_PHONE_COPY);
   const manifestEntry = entries[MANIFEST_NAME] ?? entries[`./${MANIFEST_NAME}`];
   if (!manifestEntry) throw new Error("That file isn't a Noctívago preset.");
   const read = readPhonePreset(strFromU8(manifestEntry), Object.keys(entries));
