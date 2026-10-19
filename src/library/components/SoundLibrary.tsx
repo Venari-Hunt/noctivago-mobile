@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput } from 'react-native';
+import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { colors, shared } from '../../player/components/theme';
 import { Choice } from '../../ui/Choice';
 import { TextPrompt } from '../../ui/TextPrompt';
 import { addSummary, filterSounds, parseTags, sortSounds, type LibrarySound, type SortBy } from '../domain/library';
+import { checkLink } from '../domain/link';
 import type { PreviewPlayer } from '../preview';
-import { addFromPicker, deleteSound, listSounds, saveSound } from '../storage';
+import { addFromLink, addFromPicker, deleteSound, listSounds, saveSound, type AddResult } from '../storage';
 import { SoundRow } from './SoundRow';
 
 type Props = {
@@ -30,6 +31,7 @@ export function SoundLibrary({ preview, version }: Props) {
   const [note, setNote] = useState<{ text: string; error: boolean } | null>(null);
   const [previewing, setPreviewing] = useState<string | null>(null);
   const [prompt, setPrompt] = useState<Prompt>(null);
+  const [askingLink, setAskingLink] = useState(false);
 
   const reload = () => setSounds(listSounds());
   useEffect(reload, [version]);
@@ -42,11 +44,11 @@ export function SoundLibrary({ preview, version }: Props) {
 
   const shown = useMemo(() => sortSounds(filterSounds(sounds, query), sortBy), [sounds, query, sortBy]);
 
-  const add = async () => {
+  const runAdd = async (label: string, adding: () => Promise<AddResult | null>) => {
     setNote(null);
-    setBusy('Opening…');
+    setBusy(label);
     try {
-      const result = await addFromPicker((done, total) => setBusy(`Adding ${done} of ${total}…`));
+      const result = await adding();
       if (result) {
         reload();
         setNote({ text: addSummary(result.added.length, result.failed), error: result.added.length === 0 });
@@ -56,6 +58,18 @@ export function SoundLibrary({ preview, version }: Props) {
     } finally {
       setBusy(null);
     }
+  };
+
+  const add = () => runAdd('Opening…', () => addFromPicker((done, total) => setBusy(`Adding ${done} of ${total}…`)));
+
+  const addLink = (text: string) => {
+    setAskingLink(false);
+    const link = checkLink(text);
+    if (!link.ok) {
+      setNote({ text: link.error, error: true });
+      return;
+    }
+    runAdd('Downloading…', () => addFromLink(link.url));
   };
 
   const togglePreview = async (sound: LibrarySound) => {
@@ -112,9 +126,21 @@ export function SoundLibrary({ preview, version }: Props) {
 
   return (
     <>
-      <Pressable style={[shared.button, busy && styles.busy]} onPress={add} disabled={!!busy}>
-        <Text style={shared.buttonText}>{busy ?? 'Add sounds'}</Text>
-      </Pressable>
+      <View style={styles.buttons}>
+        <Pressable style={[shared.button, styles.half, busy && styles.busy]} onPress={add} disabled={!!busy}>
+          <Text style={shared.buttonText}>{busy ?? 'Add sounds'}</Text>
+        </Pressable>
+        <Pressable
+          style={[shared.secondary, styles.half, busy && styles.busy]}
+          onPress={() => {
+            setNote(null);
+            setAskingLink(true);
+          }}
+          disabled={!!busy}
+        >
+          <Text style={shared.secondaryText}>From a link</Text>
+        </Pressable>
+      </View>
       {note && <Text style={note.error ? shared.error : styles.note}>{note.text}</Text>}
       {sounds.length > 0 && (
         <>
@@ -138,7 +164,7 @@ export function SoundLibrary({ preview, version }: Props) {
           <Text style={shared.help}>
             {sounds.length > 0
               ? 'No sound matches that search.'
-              : 'Tap Add sounds and pick audio files from this phone (MP3, WAV, FLAC, OGG, Opus, M4A). You can also share a file to Noctívago from another app. Tap a sound to listen; hold it to rename, tag or delete.'}
+              : 'Tap Add sounds and pick audio files from this phone (MP3, WAV, FLAC, OGG, Opus, M4A). From a link takes a direct link to an audio file. You can also share a file to Noctívago from another app. Tap a sound to listen; hold it to rename, tag or delete.'}
           </Text>
         }
         renderItem={({ item }) => (
@@ -152,11 +178,21 @@ export function SoundLibrary({ preview, version }: Props) {
         onOk={finishPrompt}
         onCancel={() => setPrompt(null)}
       />
+      <TextPrompt
+        title={askingLink ? 'Link to an audio file' : null}
+        initial=""
+        placeholder="https://…/rain.mp3"
+        okLabel="Add"
+        onOk={addLink}
+        onCancel={() => setAskingLink(false)}
+      />
     </>
   );
 }
 
 const styles = StyleSheet.create({
+  buttons: { flexDirection: 'row', gap: 10 },
+  half: { flex: 1 },
   busy: { opacity: 0.5 },
   note: { color: colors.dim, fontSize: 15 },
   list: { gap: 10, paddingBottom: 24 },

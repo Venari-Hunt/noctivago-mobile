@@ -5,7 +5,7 @@ Noctívago for phones: plays presets exported by the desktop app like the Mixer 
 ## Architecture
 
 - `App.tsx` — two screens by state (home, player); no router. Home (`src/home/`) has two tabs: Mixes (imported presets) and Sounds (the library).
-- `src/library/` — your own sounds: `storage.ts` (copies added files into app storage), `preview.ts` (listen to one), `domain/library.ts` (search, sort, tags, names), `components/`.
+- `src/library/` — your own sounds: `storage.ts` (copies added files into app storage; downloads a direct link, rules in `domain/link.ts`), `preview.ts` (listen to one), `domain/library.ts` (search, sort, tags, names), `components/`.
 - `src/ui/` — small shared pieces (`Choice` pills, `TextPrompt` dialog, `ActionMenu` for hold menus, `SliderRow` for every slider).
 - `src/player/` — `storage.ts` (import a phone preset zip, saved mixes in app storage, new/copy/rename, add library sounds, share file), `domain/mixEdit.ts` (pure mix edits: add, remove, turn off, share manifest), `domain/groupEdit.ts` (Sound Groups: members, filters, drift; edited in `components/GroupSheet.tsx`), `engine.ts` (audio graph, lock-screen controls), `domain/` (pure rules: reading the preset file, clock check), `components/` (screens and small UI pieces).
 - `src/player/shotVoice.ts` — Random Interval / Scheduled shots, planned one ahead on the audio clock; the engine re-books a dropped one once a minute (`check()`).

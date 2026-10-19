@@ -1,7 +1,8 @@
 import * as DocumentPicker from 'expo-document-picker';
 import { Directory, File, Paths } from 'expo-file-system';
 import { decodeAudioData } from 'react-native-audio-api';
-import { incomingFileName, nameFromFile, soundFolderName, storedExtension, type LibrarySound } from './domain/library';
+import { incomingFileName, isAudioFile, nameFromFile, soundFolderName, storedExtension, type LibrarySound } from './domain/library';
+import { MAX_LINK_BYTES } from './domain/link';
 
 // Sounds you add live in the app's own storage, one folder each:
 //   library/<id>/sound.json    LibrarySound
@@ -72,6 +73,29 @@ export async function addFromPicker(onProgress?: (done: number, total: number) =
     } catch {}
   }
   return result;
+}
+
+// Downloads a direct audio link (already checked by `checkLink`) and adds it.
+// The server's name for the file is kept when it reads as audio.
+export async function addFromLink(url: string): Promise<AddResult> {
+  const temp = new Directory(Paths.cache, `link-${Date.now().toString(36)}`);
+  temp.create({ intermediates: true });
+  try {
+    let file: File;
+    try {
+      file = await File.downloadFileAsync(url, temp);
+    } catch (e) {
+      const status = /\b([45]\d\d)\b/.exec(e instanceof Error ? e.message : String(e));
+      throw new Error(status ? `The link answered ${status[1]}. Check that it still works in a browser.` : "Couldn't download that link. Check your connection.");
+    }
+    if (file.size > MAX_LINK_BYTES) throw new Error('That file is over 200 MB, too big for the phone.');
+    const name = isAudioFile(file.name, file.type) ? file.name : incomingFileName(null, url);
+    return await addFiles([{ uri: file.uri, name, mimeType: file.type }]);
+  } finally {
+    try {
+      temp.delete();
+    } catch {}
+  }
 }
 
 export async function addFiles(files: IncomingSound[], onProgress?: (done: number, total: number) => void): Promise<AddResult> {
