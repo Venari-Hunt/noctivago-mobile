@@ -1,3 +1,4 @@
+import Constants from 'expo-constants';
 import * as DocumentPicker from 'expo-document-picker';
 import { Directory, File, Paths } from 'expo-file-system';
 import { decodeAudioData } from 'react-native-audio-api';
@@ -11,6 +12,7 @@ import { MAX_LINK_BYTES } from './domain/link';
 // permission, and the original can be moved or deleted.
 
 const SOUND_NAME = 'sound.json';
+const USER_AGENT = `Noctivago/${Constants.expoConfig?.version ?? '0'} (https://github.com/Venari-Hunt/noctivago-mobile)`;
 // Decoding at a low rate is enough to learn a file's length and that it
 // plays, at a fraction of the memory a full decode takes.
 const PROBE_SAMPLE_RATE = 8000;
@@ -83,7 +85,8 @@ export async function addFromLink(url: string): Promise<AddResult> {
   try {
     let file: File;
     try {
-      file = await File.downloadFileAsync(url, temp);
+      // Some hosts (Wikimedia) refuse Android's default "okhttp" agent.
+      file = await File.downloadFileAsync(url, temp, { headers: { 'User-Agent': USER_AGENT } });
     } catch (e) {
       const status = /\b([45]\d\d)\b/.exec(e instanceof Error ? e.message : String(e));
       throw new Error(status ? `The link answered ${status[1]}. Check that it still works in a browser.` : "Couldn't download that link. Check your connection.");
