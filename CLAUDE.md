@@ -6,11 +6,11 @@ Noctívago for phones: plays presets exported by the desktop app like the Mixer 
 
 - `App.tsx` — two screens by state (home, player); no router. Home (`src/home/`) has two tabs: Mixes (imported presets) and Sounds (the library).
 - `src/library/` — your own sounds: `storage.ts` (copies added files into app storage), `preview.ts` (listen to one), `domain/library.ts` (search, sort, tags, names), `components/`.
-- `src/ui/` — small shared pieces (`Choice` pills, `TextPrompt` dialog, `ActionMenu` for hold menus).
-- `src/player/` — `storage.ts` (import a phone preset zip, saved mixes in app storage, new/copy/rename, add library sounds, share file), `domain/mixEdit.ts` (pure mix edits: add, remove, turn off, share manifest), `engine.ts` (audio graph, lock-screen controls), `domain/` (pure rules: reading the preset file, clock check), `components/` (screens and small UI pieces).
+- `src/ui/` — small shared pieces (`Choice` pills, `TextPrompt` dialog, `ActionMenu` for hold menus, `SliderRow` for every slider).
+- `src/player/` — `storage.ts` (import a phone preset zip, saved mixes in app storage, new/copy/rename, add library sounds, share file), `domain/mixEdit.ts` (pure mix edits: add, remove, turn off, share manifest), `domain/groupEdit.ts` (Sound Groups: members, filters, drift; edited in `components/GroupSheet.tsx`), `engine.ts` (audio graph, lock-screen controls), `domain/` (pure rules: reading the preset file, clock check), `components/` (screens and small UI pieces).
 - `src/player/shotVoice.ts` — Random Interval / Scheduled shots, planned one ahead on the audio clock; the engine re-books a dropped one once a minute (`check()`).
 - `src/player/seamless.ts` — seamless loops for phone-added sounds: the desktop's tail crossfade, applied to the decoded clip at load (rules in `domain/seamlessLoop.ts`; desktop phone exports have `crossfadeSeconds: 0` and loop plainly).
-- `src/player/mixGraph.ts` — Fluctuation (drift booked ahead on the audio clock), Sound Group and whole-mix buses; rules in `domain/drift.ts` and `domain/mixPlan.ts`.
+- `src/player/mixGraph.ts` — Fluctuation (drift booked ahead on the audio clock), Sound Group and whole-mix buses; rules in `domain/drift.ts` and `domain/mixPlan.ts`. A group edit calls `engine.regroup()`: buses are reused while their spec is unchanged, and only sounds whose route changed move (a 0.06 s dip).
 - `src/shared/` — copies of the desktop's `src/shared/` rules (shot picks, Fluctuation). Never edit here: change the desktop, then `node scripts/sync-shared.mjs`; `npm test` catches drift.
 - `src/player/useIncomingFiles.ts` — files handed over by other apps ("Open with", Share): presets go to Mixes, audio to Sounds; Android filters in `app.json`.
 - `src/player/nightLog.ts` — night log for unattended overnight tests; morning read-back `scripts/night-fetch.mjs` + `night-report.mjs`, steps in `docs/night-test.md`.
