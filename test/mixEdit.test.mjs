@@ -4,6 +4,7 @@ import {
   appendSound,
   audioFileName,
   decodedMb,
+  soundsSummary,
   emptyManifest,
   playedVolume,
   removeSoundAt,
@@ -115,4 +116,12 @@ test('an empty mix is a phone preset', () => {
 test('memory estimate: 10 minutes is about 220 MB', () => {
   assert.equal(Math.round(decodedMb([{ durationSeconds: 600 }])), 220);
   assert.equal(decodedMb([{ durationSeconds: null }]), 0);
+});
+
+test('a mix card lists its first sounds that are on', () => {
+  const s = (name, off) => ({ name, off });
+  assert.equal(soundsSummary([]), 'No sounds yet');
+  assert.equal(soundsSummary([s('Rain'), s('Fire', true), s('Wind')]), 'Rain · Wind');
+  assert.equal(soundsSummary([s('A'), s('B'), s('C'), s('D'), s('E')]), 'A · B · C +2');
+  assert.equal(soundsSummary([s('A', true)]), '1 sound, all off');
 });

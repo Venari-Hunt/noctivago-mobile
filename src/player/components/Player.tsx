@@ -2,8 +2,10 @@ import * as Battery from 'expo-battery';
 import { useEffect, useRef, useState } from 'react';
 import { Alert, BackHandler, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { LibrarySound } from '../../library/domain/library';
+import { fadeLabel } from '../../settings/domain/settings';
+import { getSettings, useSettings } from '../../settings/store';
 import { ActionMenu, type Action } from '../../ui/ActionMenu';
-import { getSettings } from '../../settings/store';
+import { BottomSheet } from '../../ui/BottomSheet';
 import { TextPrompt } from '../../ui/TextPrompt';
 import { clockReport, type ClockSample } from '../domain/clockCheck';
 import { addGroup, groupOfSound, groupsOf, setMember } from '../domain/groupEdit';
@@ -11,10 +13,12 @@ import { decodedMb, HEAVY_MIX_MB, playedVolume, setSoundOn, soundFile, uniqueNam
 import type { PlayerEngine } from '../engine';
 import { addLibrarySounds, removeSound, savePreset, type SavedPreset } from '../storage';
 import { AddSoundsSheet } from './AddSoundsSheet';
+import { GroupChips } from './GroupChips';
 import { GroupSheet } from './GroupSheet';
 import { PresetMenu } from './PresetMenu';
 import { SleepTimerRow } from './SleepTimerRow';
-import { VolumeRow } from './VolumeRow';
+import { SoundCard } from './SoundCard';
+import { TransportBar } from './TransportBar';
 import { colors, shared } from './theme';
 
 type Props = {
@@ -30,7 +34,8 @@ const MODE_NOTE = { loop: undefined, scatter: 'Random Interval', scheduled: 'Sch
 
 // One mix, like the desktop Mixer: play it, set volumes, add your own
 // sounds, turn sounds off or remove them, put them in Sound Groups. Every
-// change is saved right away.
+// change is saved right away. The sounds scroll; Play, the sleep timer,
+// master volume and Add sounds stay in a bar at the bottom.
 export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
   const [preset, setPreset] = useState(initial);
   const [loading, setLoading] = useState<string | null>('Loading sounds…');
@@ -43,6 +48,8 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
   const [picking, setPicking] = useState(false);
   const [adding, setAdding] = useState<string | null>(null);
   const [menu, setMenu] = useState(false);
+  const [timerSheet, setTimerSheet] = useState(false);
+  const { showPlaybackCheck } = useSettings();
   const [soundMenu, setSoundMenu] = useState<number | null>(null);
   const [groupSheet, setGroupSheet] = useState<number | null>(null);
   /** The "New group" name dialog; soundIndex joins the new group. */
@@ -209,84 +216,47 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
     ];
   };
 
+  const blocked = !!loading || !!error || empty;
+  const onCount = preset.sounds.filter((s) => !s.off).length;
+
   return (
-    <View style={shared.page}>
-      <View style={styles.head}>
-        <Pressable onPress={onBack} hitSlop={12}>
-          <Text style={styles.link}>‹ Mixes</Text>
-        </Pressable>
-        <Pressable onPress={() => setMenu(true)} hitSlop={12} accessibilityLabel="Mix options">
-          <Text style={styles.dots}>⋯</Text>
-        </Pressable>
-      </View>
-      <Text style={shared.title}>{preset.name}</Text>
-      {error && <Text style={shared.error}>{error}</Text>}
-      {note && <Text style={styles.note}>{note}</Text>}
-      <Pressable
-        style={[shared.button, playing && styles.on, (loading || error || empty) && styles.disabled]}
-        disabled={!!loading || !!error || empty}
-        onPress={() => (playing ? pause() : play()).catch((e) => setError(String(e)))}
-      >
-        <Text style={[shared.buttonText, playing && styles.onText]}>{loading ?? (playing ? 'Pause' : 'Play')}</Text>
-      </Pressable>
-      <SleepTimerRow
-        endsAt={sleepEndsAt}
-        minutes={sleepMinutes}
-        disabled={!!loading || !!error || empty}
-        onPick={(m) => pickSleep(m).catch((e) => setError(String(e)))}
-        onOff={sleepOff}
-      />
-      <VolumeRow
-        label="Master volume"
-        value={preset.master}
-        onChange={(v) => {
-          engine.setMasterVolume(v, playingRef.current);
-          update(withMaster(v));
-        }}
-        onDone={(v) => save(withMaster(v))}
-      />
-      <Pressable
-        style={[shared.secondary, (!!loading || !!adding) && styles.disabled]}
-        disabled={!!loading || !!adding}
-        onPress={() => setPicking(true)}
-      >
-        <Text style={shared.secondaryText}>{adding ?? 'Add sounds'}</Text>
-      </Pressable>
-      {heavyMb > HEAVY_MIX_MB && (
-        <Text style={styles.note}>Heavy mix: about {Math.round(heavyMb)} MB of memory while playing. Long sounds take the most.</Text>
-      )}
-      <ScrollView contentContainerStyle={styles.sounds}>
-        {empty && (
-          <Text style={shared.help}>
-            No sounds yet. Tap Add sounds to pick some from your library. Hold a sound's name to turn it off, group it or remove it.
+    <View style={styles.screen}>
+      <View style={styles.top}>
+        <View style={styles.head}>
+          <Pressable onPress={onBack} hitSlop={12}>
+            <Text style={styles.link}>‹ Mixes</Text>
+          </Pressable>
+          <Pressable onPress={() => setMenu(true)} hitSlop={12} accessibilityLabel="Mix options">
+            <Text style={styles.dots}>⋯</Text>
+          </Pressable>
+        </View>
+        <Text style={shared.title} numberOfLines={2}>{preset.name}</Text>
+        {!empty && (
+          <Text style={shared.small}>
+            {onCount === preset.sounds.length ? `${onCount} sound${onCount === 1 ? '' : 's'}` : `${onCount} of ${preset.sounds.length} sounds on`}
+            {playing ? ' · playing' : ''}
           </Text>
         )}
-        {!empty && (
-          <View style={styles.groups}>
-            <View style={styles.groupsHead}>
-              <Text style={styles.section}>Sound Groups</Text>
-              <Pressable onPress={() => setNaming({})} hitSlop={12}>
-                <Text style={styles.link}>+ New group</Text>
-              </Pressable>
-            </View>
-            {groups.length === 0 && <Text style={styles.note}>Group sounds to filter them or make them drift together.</Text>}
-            {groups.map((g, gi) => (
-              <Pressable key={`${gi}-${g.name}`} style={styles.group} onPress={() => setGroupSheet(gi)}>
-                <Text style={styles.groupName} numberOfLines={1}>{g.name}</Text>
-                <Text style={styles.note}>
-                  {g.soundIndexes.length === 1 ? '1 sound' : `${g.soundIndexes.length} sounds`} ›
-                </Text>
-              </Pressable>
-            ))}
-          </View>
+        {error && <Text style={shared.error}>{error}</Text>}
+        {note && <Text style={styles.note}>{note}</Text>}
+      </View>
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.sounds}>
+        {empty ? (
+          <Text style={shared.help}>
+            No sounds yet. Tap + Sounds below to pick some from your library. The round button on a sound turns it on or
+            off; hold its name to group it or remove it.
+          </Text>
+        ) : (
+          <GroupChips groups={groups} onOpen={setGroupSheet} onNew={() => setNaming({})} />
         )}
         {preset.sounds.map((s, i) => (
-          <VolumeRow
+          <SoundCard
             key={soundFile(s, i)}
             label={s.name}
             value={s.volume}
             off={s.off}
             note={soundNote(s.off ? 'Off' : MODE_NOTE[s.playMode] ?? `${Math.round(s.volume * 100)}%`, groups[groupOfSound(preset, i)]?.name)}
+            onToggle={() => toggleSound(i)}
             onChange={(v) => {
               if (!s.off) engine.setSoundVolume(soundFile(s, i), v);
               update(withSound(i, v));
@@ -295,13 +265,48 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
             onLongPress={() => setSoundMenu(i)}
           />
         ))}
+        {heavyMb > HEAVY_MIX_MB && (
+          <Text style={styles.note}>Heavy mix: about {Math.round(heavyMb)} MB of memory while playing. Long sounds take the most.</Text>
+        )}
+        {showPlaybackCheck && report && (
+          <Text style={shared.small}>
+            Audio kept running {(report.ratio * 100).toFixed(0)}% of {report.wallMinutes.toFixed(0)} min · battery{' '}
+            {drain === null ? 'measuring…' : `${drain.toFixed(1)}% per hour`}
+          </Text>
+        )}
       </ScrollView>
-      {report && (
-        <Text style={shared.small}>
-          Audio kept running {(report.ratio * 100).toFixed(0)}% of {report.wallMinutes.toFixed(0)} min · battery{' '}
-          {drain === null ? 'measuring…' : `${drain.toFixed(1)}% per hour`}
-        </Text>
-      )}
+      <TransportBar
+        playing={playing}
+        status={loading ?? adding}
+        disabled={blocked}
+        onPlayPause={() => (playing ? pause() : play()).catch((e) => setError(String(e)))}
+        master={preset.master}
+        onMaster={(v) => {
+          engine.setMasterVolume(v, playingRef.current);
+          update(withMaster(v));
+        }}
+        onMasterDone={(v) => save(withMaster(v))}
+        sleepEndsAt={sleepEndsAt}
+        onTimer={() => setTimerSheet(true)}
+        adding={!!loading || !!adding}
+        onAdd={() => setPicking(true)}
+      />
+      <BottomSheet title="Sleep timer" visible={timerSheet} onClose={() => setTimerSheet(false)}>
+        <SleepTimerRow
+          endsAt={sleepEndsAt}
+          minutes={sleepMinutes}
+          disabled={blocked}
+          onPick={(m) => {
+            setTimerSheet(false);
+            pickSleep(m).catch((e) => setError(String(e)));
+          }}
+          onOff={() => {
+            setTimerSheet(false);
+            sleepOff();
+          }}
+        />
+        <Text style={shared.small}>Fades out over {fadeLabel(getSettings().sleepFadeSeconds)} at the end. Change it in Settings.</Text>
+      </BottomSheet>
       <AddSoundsSheet visible={picking} onAdd={(sounds) => addSounds(sounds)} onClose={() => setPicking(false)} />
       <ActionMenu
         title={menuSound?.name ?? null}
@@ -345,17 +350,12 @@ function soundNote(base: string, group: string | undefined): string {
 }
 
 const styles = StyleSheet.create({
-  head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  screen: { flex: 1, backgroundColor: colors.page },
+  top: { paddingHorizontal: 24, paddingTop: 64, paddingBottom: 12, gap: 6 },
+  head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
   link: { color: colors.accent, fontSize: 16 },
   dots: { color: colors.accent, fontSize: 24, paddingHorizontal: 6 },
   note: { color: colors.dim, fontSize: 14 },
-  on: { backgroundColor: colors.raised },
-  onText: { color: colors.accent },
-  disabled: { opacity: 0.5 },
-  sounds: { gap: 14, paddingBottom: 24 },
-  groups: { gap: 8 },
-  groupsHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  section: { color: colors.text, fontSize: 17, fontWeight: '700' },
-  group: { backgroundColor: colors.card, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 14, flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
-  groupName: { color: colors.text, fontSize: 16, flexShrink: 1 },
+  scroll: { flex: 1 },
+  sounds: { gap: 10, paddingHorizontal: 16, paddingBottom: 24 },
 });

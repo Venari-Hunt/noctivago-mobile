@@ -161,3 +161,12 @@ export function decodedMb(sounds: PhoneSound[], sampleRate = 48000): number {
   const seconds = sounds.reduce((sum, s) => sum + (s.durationSeconds ?? 0), 0);
   return (seconds * sampleRate * 2 * 4) / (1024 * 1024);
 }
+
+/** A mix card's second line: its first few sounds that are on, "+N" for the rest. */
+export function soundsSummary(sounds: { name: string; off?: boolean }[], shown = 3): string {
+  if (sounds.length === 0) return 'No sounds yet';
+  const on = sounds.filter((s) => !s.off).map((s) => s.name);
+  if (on.length === 0) return `${sounds.length} sound${sounds.length === 1 ? '' : 's'}, all off`;
+  const rest = on.length - shown;
+  return on.slice(0, shown).join(' · ') + (rest > 0 ? ` +${rest}` : '');
+}

@@ -13,6 +13,8 @@ export type AppSettings = {
   /** Phone versions of the PC's core plugins; off hides them. */
   browseSounds: boolean;
   community: boolean;
+  /** The player's "Audio kept running… · battery" line, for overnight tests. */
+  showPlaybackCheck: boolean;
 };
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -22,6 +24,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   newSoundVolume: 0.7,
   browseSounds: true,
   community: true,
+  showPlaybackCheck: false,
 };
 
 export const FADE_CHOICES = [10, 30, 60, 300];
@@ -48,5 +51,6 @@ export function parseSettings(raw: unknown): AppSettings {
       typeof volume === 'number' && Number.isFinite(volume) ? Math.min(1, Math.max(0, volume)) : DEFAULT_SETTINGS.newSoundVolume,
     browseSounds: bool('browseSounds'),
     community: bool('community'),
+    showPlaybackCheck: bool('showPlaybackCheck'),
   };
 }

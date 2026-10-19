@@ -52,7 +52,6 @@ export default function App() {
       .then(openPreset)
       .catch((e) => Alert.alert("Couldn't import that file", e instanceof Error ? e.message : String(e)));
   });
-  const version = `${update.label}${update.waiting ? ` · ${update.waiting}` : ''}`;
 
   return (
     <>
@@ -62,7 +61,6 @@ export default function App() {
         <SettingsScreen update={update} onBack={() => setSettingsOpen(false)} />
       ) : (
         <Home
-          version={version}
           tab={tab}
           onTab={(next) => {
             preview.current.stop().catch(() => {});
