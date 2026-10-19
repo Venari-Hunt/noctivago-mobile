@@ -1,5 +1,6 @@
-import { importBytes, type SavedPreset } from '../player/storage';
+import { importEntries, type SavedPreset } from '../player/storage';
 import { bundleUrl, listUrl, parseList, type CommunityPage, type CommunitySort } from './domain/community';
+import { readPhoneCopy } from './domain/partial';
 
 // Reads the community server (browse and download only; sharing stays on
 // the PC, where presets are made).
@@ -18,21 +19,26 @@ export async function listCommunity(query: string, sort: CommunitySort, page: nu
   return parseList(body);
 }
 
-// Downloads the whole file (the server has no partial reads), keeps only
-// its phone copy, and saves it as a mix.
+// Downloads the preset's phone copy (only that part when the server allows)
+// and saves it as a mix.
 export async function downloadCommunity(id: string): Promise<SavedPreset> {
-  let res: Response;
-  try {
-    res = await fetch(bundleUrl(id));
-  } catch {
-    throw new Error(OFFLINE);
-  }
-  if (!res.ok) throw new Error(res.status === 404 ? 'That preset is no longer available.' : `Download failed (${res.status}).`);
-  let bytes: Uint8Array;
-  try {
-    bytes = new Uint8Array(await res.arrayBuffer());
-  } catch {
-    throw new Error('The download stopped halfway. Try again.');
-  }
-  return importBytes(bytes, { onlyPhoneCopy: true });
+  const url = bundleUrl(id);
+  const files = await readPhoneCopy(async (range) => {
+    let res: Response;
+    try {
+      res = await fetch(url, { headers: { Range: range } });
+    } catch {
+      throw new Error(OFFLINE);
+    }
+    if (!res.ok) throw new Error(res.status === 404 ? 'That preset is no longer available.' : `Download failed (${res.status}).`);
+    let bytes: Uint8Array;
+    try {
+      bytes = new Uint8Array(await res.arrayBuffer());
+    } catch {
+      throw new Error('The download stopped halfway. Try again.');
+    }
+    const total = Number(/\/(\d+)$/.exec(res.headers.get('content-range') ?? '')?.[1]);
+    return { partial: res.status === 206, total: Number.isFinite(total) ? total : null, bytes };
+  });
+  return importEntries(files);
 }

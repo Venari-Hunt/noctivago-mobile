@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.12.1 — 2026-10-19
+
+- **Community downloads are much smaller**: the phone now fetches only the preset's phone copy, not the PC's files too (Beach: about 7 MB instead of 46 MB). This needs the updated community server; until it's live, the phone downloads the whole file as before.
+- JavaScript only: arrives over the air on 0.6.0.
+
 ## 0.12.0 — 2026-10-19
 
 - **Community tab** (phone Mixer, phase 10). Browse the presets people shared from the PC app: search, Newest or Popular, Load more. Each shows its author, sound count, size and downloads. Tap one, confirm, and it downloads into **Mixes** and opens in the player.
