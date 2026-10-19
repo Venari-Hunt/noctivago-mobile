@@ -383,6 +383,37 @@ export class PlayerEngine {
     this.logNight('play');
   }
 
+  /** One-off test shots still playing; the context suspends after the last. */
+  private testing = 0;
+
+  // The desktop's "Test fire" for Random Interval / Scheduled sounds. While
+  // playing, an "on" sound skips its wait and fires now (the mix's chain,
+  // groups included). Otherwise one shot plays on its own, at the sound's
+  // volume times master, straight to the speaker (no group or whole-mix
+  // chain), and a paused mix goes back to sleep after it.
+  async testShot(key: string, volume: number, on: boolean) {
+    const { ctx } = this;
+    const shots = this.voices.get(key)?.shots;
+    if (!ctx || !shots) return;
+    if (this.playing && on) {
+      shots.fireNow();
+      return;
+    }
+    if (!this.playing) {
+      this.suspendMarker = dropMarker(this.suspendMarker);
+      await ctx.resume();
+    }
+    const out = ctx.createGain();
+    out.gain.value = volume * this.masterVolume;
+    out.connect(ctx.destination);
+    this.testing++;
+    shots.playOnce(out, () => {
+      out.disconnect();
+      this.testing--;
+      if (!this.playing && this.testing === 0 && !this.suspendMarker) ctx.suspend().catch(() => {});
+    });
+  }
+
   async pause() {
     const { ctx, master } = this;
     if (!ctx || !master) return;

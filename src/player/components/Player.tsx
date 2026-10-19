@@ -244,7 +244,8 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
         {empty ? (
           <Text style={shared.help}>
             No sounds yet. Tap + Sounds below to pick some from your library. The round button on a sound turns it on or
-            off; hold its name to group it or remove it.
+            off; hold its name to group it or remove it. Random Interval and Scheduled sounds get a small play button
+            that plays one shot right away, to try their settings.
           </Text>
         ) : (
           <GroupChips groups={groups} onOpen={setGroupSheet} onNew={() => setNaming({})} />
@@ -263,6 +264,11 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
             }}
             onDone={(v) => save(withSound(i, v))}
             onLongPress={() => setSoundMenu(i)}
+            onTest={
+              s.playMode !== 'loop' && !loading
+                ? () => engine.testShot(soundFile(s, i), s.volume, !s.off).catch(fail)
+                : undefined
+            }
           />
         ))}
         {heavyMb > HEAVY_MIX_MB && (

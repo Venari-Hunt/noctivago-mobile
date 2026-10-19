@@ -75,6 +75,18 @@ export class ShotVoice {
     else this.plan(now + wait);
   }
 
+  /** Test fire while playing: skips the wait and plays a shot now; the
+   * next one follows as usual. */
+  fireNow() {
+    this.plan(this.ctx.currentTime + LEAD);
+  }
+
+  /** Test fire on its own (paused, or the sound is off): one shot into
+   * `out`, outside the chain; `onEnd` once it has played. */
+  playOnce(out: AudioNode, onEnd: () => void) {
+    this.makeShot(this.ctx.currentTime + LEAD, -1, out, onEnd);
+  }
+
   /** silent: fired by another member of its sync group (no re-sync). */
   plan(at: number, silent = false) {
     if (!silent && this.sync) at = this.sync(this, at);
@@ -119,7 +131,8 @@ export class ShotVoice {
     if (c && c.start > this.ctx.currentTime) this.release(c, true);
   }
 
-  private makeShot(at: number, chain: number): Shot {
+  // chain -1 with onEnd: a one-off test shot that plans nothing after it.
+  private makeShot(at: number, chain: number, out: AudioNode = this.out, onEnd?: () => void): Shot {
     const { ctx } = this;
     const plan = planShot(this.config, this.buffer.duration);
     const source = ctx.createBufferSource({ pitchCorrection: plan.pitchCorrection });
@@ -136,12 +149,13 @@ export class ShotVoice {
       gain.connect(pan);
       nodes.push(pan);
     }
-    (pan ?? gain).connect(this.out);
+    (pan ?? gain).connect(out);
     scheduleShotEnvelope(gain.gain, plan.volume, at, plan.durationSeconds, plan.fadeInSeconds, plan.fadeOutSeconds);
     const shot: Shot = { source, nodes, start: at, end: at + plan.durationSeconds, chain };
     source.onEnded = () => {
       this.release(shot, false);
-      if (shot.chain === this.chain) this.next(shot);
+      if (onEnd) onEnd();
+      else if (shot.chain === this.chain) this.next(shot);
     };
     source.start(at);
     this.live.add(shot);
