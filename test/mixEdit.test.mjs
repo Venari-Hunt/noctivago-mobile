@@ -59,8 +59,8 @@ test('removing a sound keeps the others on their files and fixes group members',
   const p = removeSoundAt(imported(), 0);
   assert.deepEqual(p.sounds.map((s, i) => soundFile(s, i)), ['1.ogg', '2.ogg']);
   assert.deepEqual(p.manifest.sounds.map((s) => s.name), ['Gull', 'Wind']);
-  // Sky (1, 2) moves down to (0, 1); Sea lost its only member and is dropped.
-  assert.deepEqual(p.manifest.groups, [{ name: 'Sky', soundIndexes: [0, 1] }]);
+  // Sky (1, 2) moves down to (0, 1); Sea lost its only member but stays.
+  assert.deepEqual(p.manifest.groups, [{ name: 'Sky', soundIndexes: [0, 1] }, { name: 'Sea', soundIndexes: [] }]);
   // Gull keeps its own settings, now at index 0.
   assert.equal(p.manifest.sounds[0].settings.scatter.minGapSeconds, 5);
 });

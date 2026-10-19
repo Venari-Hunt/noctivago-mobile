@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.9.0 — 2026-10-19
+
+- **Sound Groups** (phone Mixer, phase 9). In a mix, under **Sound Groups**, tap **+ New group**, name it, and tap the sounds to put in it. Or hold a sound's name: **Add to "<group>"**, **Leave "<group>"**, or **New group with this sound…**. A sound is in one group at a time, like on the PC; its row shows the group's name.
+- Tap a group to edit what its sounds share: **High-pass**, **Low-pass**, **Gain**, **Echo delay** and **Echo decay** (the PC's Remix ranges; the frequency sliders move evenly per octave), and **Volume**, **Pan** and **Pitch drift**, each Off, **Together** (the whole group moves as one) or **Each sound** (every sound wanders on its own in that range), with its lowest and highest point. **Rename** and **Delete** are at the top; deleting a group leaves its sounds in the mix.
+- Changes play right away, also while the mix plays: only the group you changed is rebuilt, and its sounds dip out for a moment (about 0.1 s) instead of clicking. The other sounds don't move.
+- Groups from a PC preset can be edited the same way. Their EQ stays as the PC set it.
+- A shared mix keeps its groups on the PC. Empty groups stay in the phone mix (so you can fill them later) and are left out when sharing, as the PC's export does.
+- JavaScript only: arrives over the air on 0.6.0.
+
 ## 0.8.0 — 2026-10-19
 
 - **Seamless loops for your own sounds** (phone Mixer, phase 8). A sound added on the phone no longer jumps or clicks where it wraps around: like the desktop's "Prepare seamless looping", the end is blended into the start with a 0.2 s equal-power crossfade, and the loop starts mid-clip so the wrap itself is continuous. The loop gets 0.2 s shorter.

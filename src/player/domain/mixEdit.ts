@@ -94,17 +94,15 @@ export function appendSound<T extends PhonePreset>(preset: T, sound: NewSound, f
   return { ...p, sounds: [...p.sounds, entry], manifest: { ...p.manifest, sounds: [...manifestSounds(p.manifest), raw] } };
 }
 
-// Removes sound `index`; Sound Group members after it move down one, and a
-// group left with no members is dropped (as the desktop's export does).
+// Removes sound `index`; Sound Group members after it move down one. A
+// group left empty stays (it can get new members); sharing drops it.
 export function removeSoundAt<T extends PhonePreset>(preset: T, index: number): T {
   const p = withFiles(preset);
   const groups = Array.isArray(p.manifest.groups) ? (p.manifest.groups as Bag[]) : [];
-  const nextGroups = groups
-    .map((g) => {
-      const members = Array.isArray(g?.soundIndexes) ? (g.soundIndexes as number[]) : [];
-      return { ...g, soundIndexes: members.filter((m) => m !== index).map((m) => (m > index ? m - 1 : m)) };
-    })
-    .filter((g) => g.soundIndexes.length > 0);
+  const nextGroups = groups.map((g) => {
+    const members = Array.isArray(g?.soundIndexes) ? (g.soundIndexes as number[]) : [];
+    return { ...g, soundIndexes: members.filter((m) => m !== index).map((m) => (m > index ? m - 1 : m)) };
+  });
   return {
     ...p,
     sounds: p.sounds.filter((_, i) => i !== index),
@@ -144,6 +142,10 @@ export function shareManifest(preset: PhonePreset, nowIso: string): { manifest: 
     phone: { version: SUPPORTED_PHONE_VERSION },
     exportedAt: nowIso,
     name: preset.name,
+    // Empty groups are dropped, as the desktop's export does.
+    groups: (Array.isArray(preset.manifest.groups) ? (preset.manifest.groups as Bag[]) : []).filter(
+      (g) => Array.isArray(g?.soundIndexes) && g.soundIndexes.length > 0,
+    ),
     sounds,
   };
   return { manifest, audio };

@@ -2,6 +2,7 @@ import {
   AudioContext,
   AudioManager,
   PlaybackNotificationManager,
+  type AudioBuffer,
   type AudioBufferSourceNode,
   type ConstantSourceNode,
   type GainNode,
@@ -32,9 +33,22 @@ const DRIFT_HORIZON = 60;
 // Shot safety check and night log, on the audio clock too.
 const WATCH_SECONDS = 60;
 const WATCH_LOG_EVERY = 10; // a night log entry every 10 checks
+// A sound moving to another Sound Group dips out and back in this fast.
+const REROUTE_DIP = 0.06;
 
-type Voice = { gain: GainNode; source?: AudioBufferSourceNode; shots?: ShotVoice; drift?: SoundDrift };
-type Routes = { wholeMix: MixBus; groups: (MixBus | null)[] };
+type Voice = {
+  gain: GainNode;
+  buffer: AudioBuffer;
+  /** The bus its gain feeds: its group's, or the whole mix's. */
+  bus: MixBus;
+  /** Its own drift or shot settings after its group's rules, as JSON. */
+  own: string;
+  source?: AudioBufferSourceNode;
+  shots?: ShotVoice;
+  drift?: SoundDrift;
+};
+/** keys[g]: the spec group g's bus was built from, as JSON. */
+type Routes = { wholeMix: MixBus; groups: (MixBus | null)[]; keys: string[] };
 type Remote = 'play' | 'pause';
 
 export class PlayerEngine {
@@ -57,6 +71,10 @@ export class PlayerEngine {
   /** Silent node whose end event suspends the context after a pause fade. */
   private suspendMarker: ConstantSourceNode | null = null;
   private buses: MixBus[] = [];
+  /** Group buses replaced by an edit, freed once no sound feeds them. */
+  private retired: MixBus[] = [];
+  /** The latest Sound Group edit, applied after the dip. */
+  private grouped: SavedPreset | null = null;
   private drifts: ParamDrift[] = [];
   private driftMarker: ConstantSourceNode | null = null;
   private watchMarker: ConstantSourceNode | null = null;
@@ -89,9 +107,10 @@ export class PlayerEngine {
     const { manifest } = preset;
     this.fadeIn = wholeMixFadeIn(manifest);
     const wholeMix = new MixBus(ctx, wholeMixSpec(manifest), master, true);
-    const groups = groupBusSpecs(manifest).map((spec) => (spec ? new MixBus(ctx, spec, wholeMix.input, true) : null));
-    this.buses = [wholeMix, ...groups.filter((b): b is MixBus => !!b)];
-    this.routes = { wholeMix, groups };
+    this.buses = [wholeMix];
+    this.addDrifts(wholeMix.drifts);
+    this.routes = { wholeMix, groups: [], keys: [] };
+    this.buildGroups(ctx, preset);
 
     // One at a time: each clip is decoded fully into memory, so decoding
     // them all at once could double the peak.
@@ -99,7 +118,6 @@ export class PlayerEngine {
       if (!(await this.addVoice(ctx, preset, i))) return; // unloaded while decoding
       onProgress?.(i + 1, preset.sounds.length);
     }
-    this.drifts = [...this.buses, ...[...this.voices.values()].map((v) => v.drift)].flatMap((d) => d?.drifts ?? []);
     this.bookDrift();
     this.watch();
     this.logNight('load');
@@ -111,7 +129,6 @@ export class PlayerEngine {
   // mix). False when the engine was unloaded meanwhile.
   private async addVoice(ctx: AudioContext, preset: SavedPreset, index: number, fadeSeconds = 0): Promise<boolean> {
     const sound = preset.sounds[index];
-    const { manifest } = preset;
     const buffer = await ctx.decodeAudioData(audioUri(preset, index));
     if (this.ctx !== ctx || !this.routes) return false;
     const gain = ctx.createGain();
@@ -120,35 +137,139 @@ export class PlayerEngine {
       gain.gain.setValueAtTime(0, ctx.currentTime);
       gain.gain.linearRampToValueAtTime(volume, ctx.currentTime + fadeSeconds);
     } else gain.gain.value = volume;
-    gain.connect(this.routes.groups[groupIndexOf(manifest, index)]?.input ?? this.routes.wholeMix.input);
-    const key = soundFile(sound, index);
-    if (sound.playMode === 'loop') {
-      const source = ctx.createBufferSource();
-      source.buffer = seamlessBuffer(ctx, buffer, loopFade(manifest, index, buffer.duration));
-      source.loop = true;
-      const drift = new SoundDrift(ctx, source.detune, soundFluctuation(manifest, index), gain);
-      source.connect(drift.input);
-      source.start();
-      this.voices.set(key, { gain, source, drift });
-    } else {
+    const voice = this.wire(ctx, preset, index, gain, buffer);
+    this.voices.set(soundFile(sound, index), voice);
+    this.addDrifts(voice.drift?.drifts ?? []);
+    return true;
+  }
+
+  // Where sound `index` goes and what it runs, after its group's rules.
+  private routeOf(preset: SavedPreset, index: number): { bus: MixBus; own: string } {
+    const routes = this.routes!;
+    const { manifest } = preset;
+    const mode = preset.sounds[index].playMode;
+    const own = mode === 'loop' ? soundFluctuation(manifest, index) : shotSettings(manifest, index, mode);
+    return { bus: routes.groups[groupIndexOf(manifest, index)] ?? routes.wholeMix, own: JSON.stringify(own) };
+  }
+
+  // Builds a sound's player into its gain (a looping source with its drift,
+  // or Random Interval / Scheduled shots), and the gain into its bus. A
+  // re-routed loop passes its running source, so it keeps its place.
+  private wire(ctx: AudioContext, preset: SavedPreset, index: number, gain: GainNode, buffer: AudioBuffer, source?: AudioBufferSourceNode): Voice {
+    const sound = preset.sounds[index];
+    const { manifest } = preset;
+    const { bus, own } = this.routeOf(preset, index);
+    gain.connect(bus.input);
+    if (sound.playMode !== 'loop') {
       const shots = new ShotVoice(ctx, buffer, gain, sound.playMode, shotSettings(manifest, index, sound.playMode));
       shots.sync = (voice, at) => this.syncGroup(voice, at);
-      this.voices.set(key, { gain, shots });
+      return { gain, buffer, bus, own, shots };
     }
-    return true;
+    if (!source) {
+      source = ctx.createBufferSource();
+      source.buffer = seamlessBuffer(ctx, buffer, loopFade(manifest, index, buffer.duration));
+      source.loop = true;
+      source.start();
+    }
+    const drift = new SoundDrift(ctx, source.detune, soundFluctuation(manifest, index), gain);
+    source.connect(drift.input);
+    return { gain, buffer, bus, own, source, drift };
   }
 
   /** Adds sound `index` of the edited mix while loaded, playing or not. */
   async addSound(preset: SavedPreset, index: number) {
     const ctx = this.ctx;
     if (!ctx || !(await this.addVoice(ctx, preset, index, this.playing ? FADE_SECONDS : 0))) return;
-    const voice = this.voices.get(soundFile(preset.sounds[index], index));
-    if (this.playing) voice?.shots?.restart();
-    const drifts = voice?.drift?.drifts ?? [];
+    if (this.playing) this.voices.get(soundFile(preset.sounds[index], index))?.shots?.restart();
+  }
+
+  // A bus is reused while some group still asks for the same spec, so an
+  // edit to one group leaves the others playing untouched.
+  private buildGroups(ctx: AudioContext, preset: SavedPreset) {
+    const routes = this.routes!;
+    const specs = groupBusSpecs(preset.manifest);
+    const keys = specs.map((spec) => (spec ? JSON.stringify(spec) : ''));
+    const pool = routes.groups.flatMap((bus, g) => (bus ? [{ bus, key: routes.keys[g] }] : []));
+    const groups = specs.map((spec, g) => {
+      if (!spec) return null;
+      const hit = pool.findIndex((p) => p.key === keys[g]);
+      if (hit >= 0) return pool.splice(hit, 1)[0].bus;
+      const bus = new MixBus(ctx, spec, routes.wholeMix.input, true);
+      this.buses.push(bus);
+      this.addDrifts(bus.drifts);
+      return bus;
+    });
+    this.retired.push(...pool.map((p) => p.bus));
+    this.routes = { wholeMix: routes.wholeMix, groups, keys };
+  }
+
+  /** Applies a Sound Group edit live: only the buses that changed are
+   * rebuilt, and only the sounds whose route changed move, each with a
+   * short dip so the switch doesn't click. */
+  regroup(preset: SavedPreset) {
+    const ctx = this.ctx;
+    if (!ctx || !this.routes) return;
+    this.grouped = preset;
+    this.buildGroups(ctx, preset);
+    if (!this.playing) return this.applyGroups();
+    for (const [, voice] of this.movedVoices(preset)) this.ramp(voice.gain, 0, REROUTE_DIP);
+    const marker = this.atAudioTime(ctx.currentTime + REROUTE_DIP + 0.02, () => {
+      marker.disconnect();
+      this.applyGroups();
+    });
+  }
+
+  private movedVoices(preset: SavedPreset): [number, Voice][] {
+    return [...preset.sounds.keys()].flatMap((i) => {
+      const voice = this.voices.get(soundFile(preset.sounds[i], i));
+      if (!voice) return [];
+      const { bus, own } = this.routeOf(preset, i);
+      return bus !== voice.bus || own !== voice.own ? [[i, voice] as [number, Voice]] : [];
+    });
+  }
+
+  // Moves every sound to its latest route, then frees the buses left idle.
+  private applyGroups() {
+    const ctx = this.ctx;
+    const preset = this.grouped;
+    if (!ctx || !preset || !this.routes) return;
+    for (const [i, voice] of this.movedVoices(preset)) {
+      this.dropDrifts(voice.drift?.drifts ?? []);
+      voice.drift?.dispose();
+      voice.shots?.dispose();
+      voice.gain.disconnect();
+      voice.source?.disconnect();
+      voice.source?.detune.cancelScheduledValues(ctx.currentTime);
+      if (voice.source) voice.source.detune.value = 0;
+      const next = this.wire(ctx, preset, i, voice.gain, voice.buffer, voice.source);
+      this.voices.set(soundFile(preset.sounds[i], i), next);
+      this.addDrifts(next.drift?.drifts ?? []);
+      if (this.playing) next.shots?.restart();
+      // Back up from the dip (also when paused meanwhile).
+      this.ramp(voice.gain, playedVolume(preset.sounds[i]), REROUTE_DIP);
+    }
+    const fed = new Set([...this.voices.values()].map((v) => v.bus));
+    const idle = this.retired.filter((b) => !fed.has(b));
+    this.retired = this.retired.filter((b) => fed.has(b));
+    idle.forEach((b) => {
+      this.dropDrifts(b.drifts);
+      b.dispose();
+    });
+    this.buses = this.buses.filter((b) => !idle.includes(b));
+  }
+
+  // Drift walks join the booking: right away once playback is set up (load
+  // books everything at its end).
+  private addDrifts(drifts: ParamDrift[]) {
     if (drifts.length === 0) return;
     this.drifts.push(...drifts);
     if (this.driftMarker) drifts.forEach((d) => d.book(this.driftUntil));
-    else this.bookDrift();
+    else if (this.watchMarker) this.bookDrift();
+  }
+
+  private dropDrifts(drifts: ParamDrift[]) {
+    const gone = new Set(drifts);
+    this.drifts = this.drifts.filter((d) => !gone.has(d));
   }
 
   /** Fades a sound out of the mix and frees it. key: mixEdit.soundFile. */
@@ -367,6 +488,8 @@ export class PlayerEngine {
     this.voices.clear();
     this.buses.forEach((b) => b.dispose());
     this.buses = [];
+    this.retired = [];
+    this.grouped = null;
     this.routes = null;
     this.playing = false;
     const ctx = this.ctx;

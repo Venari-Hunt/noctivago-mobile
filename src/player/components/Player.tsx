@@ -2,12 +2,15 @@ import * as Battery from 'expo-battery';
 import { useEffect, useRef, useState } from 'react';
 import { Alert, BackHandler, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { LibrarySound } from '../../library/domain/library';
-import { ActionMenu } from '../../ui/ActionMenu';
+import { ActionMenu, type Action } from '../../ui/ActionMenu';
+import { TextPrompt } from '../../ui/TextPrompt';
 import { clockReport, type ClockSample } from '../domain/clockCheck';
-import { decodedMb, HEAVY_MIX_MB, playedVolume, setSoundOn, soundFile } from '../domain/mixEdit';
+import { addGroup, groupOfSound, groupsOf, setMember } from '../domain/groupEdit';
+import { decodedMb, HEAVY_MIX_MB, playedVolume, setSoundOn, soundFile, uniqueName } from '../domain/mixEdit';
 import type { PlayerEngine } from '../engine';
 import { addLibrarySounds, removeSound, savePreset, type SavedPreset } from '../storage';
 import { AddSoundsSheet } from './AddSoundsSheet';
+import { GroupSheet } from './GroupSheet';
 import { PresetMenu } from './PresetMenu';
 import { SleepTimerRow } from './SleepTimerRow';
 import { VolumeRow } from './VolumeRow';
@@ -25,7 +28,8 @@ type Run = { samples: ClockSample[]; batteryStart: number; batteryNow: number };
 const MODE_NOTE = { loop: undefined, scatter: 'Random Interval', scheduled: 'Scheduled' } as const;
 
 // One mix, like the desktop Mixer: play it, set volumes, add your own
-// sounds, turn sounds off or remove them. Every change is saved right away.
+// sounds, turn sounds off or remove them, put them in Sound Groups. Every
+// change is saved right away.
 export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
   const [preset, setPreset] = useState(initial);
   const [loading, setLoading] = useState<string | null>('Loading sounds…');
@@ -39,6 +43,9 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
   const [adding, setAdding] = useState<string | null>(null);
   const [menu, setMenu] = useState(false);
   const [soundMenu, setSoundMenu] = useState<number | null>(null);
+  const [groupSheet, setGroupSheet] = useState<number | null>(null);
+  /** The "New group" name dialog; soundIndex joins the new group. */
+  const [naming, setNaming] = useState<{ soundIndex?: number } | null>(null);
   const playingRef = useRef(false);
 
   const setPlayingBoth = (on: boolean) => {
@@ -137,6 +144,21 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
     }
   };
 
+  // Sound Group edits play right away (engine.regroup) and are saved.
+  const regroup = (next: SavedPreset) => {
+    engine.regroup(next);
+    save(next);
+  };
+
+  const newGroup = (name: string) => {
+    const soundIndex = naming?.soundIndex;
+    setNaming(null);
+    const next = addGroup(preset, name, soundIndex);
+    regroup(next);
+    // A group made from the Groups list opens to pick its sounds.
+    if (soundIndex === undefined) setGroupSheet(groupsOf(next).length - 1);
+  };
+
   const toggleSound = (i: number) => {
     const next = setSoundOn(preset, i, !!preset.sounds[i].off);
     engine.setSoundVolume(soundFile(next.sounds[i], i), playedVolume(next.sounds[i]));
@@ -167,6 +189,17 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
   const empty = preset.sounds.length === 0;
   const heavyMb = decodedMb(preset.sounds);
   const menuSound = soundMenu === null ? null : preset.sounds[soundMenu];
+  const groups = groupsOf(preset);
+  const groupMenu = (i: number): Action[] => {
+    const at = groupOfSound(preset, i);
+    return [
+      ...groups.map((g, gi) => ({
+        label: gi === at ? `Leave "${g.name}"` : `Add to "${g.name}"`,
+        onPress: () => regroup(setMember(preset, gi, i, gi !== at)),
+      })),
+      { label: 'New group with this sound…', onPress: () => setNaming({ soundIndex: i }) },
+    ];
+  };
 
   return (
     <View style={shared.page}>
@@ -217,8 +250,27 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
       <ScrollView contentContainerStyle={styles.sounds}>
         {empty && (
           <Text style={shared.help}>
-            No sounds yet. Tap Add sounds to pick some from your library. Hold a sound's name to turn it off or remove it.
+            No sounds yet. Tap Add sounds to pick some from your library. Hold a sound's name to turn it off, group it or remove it.
           </Text>
+        )}
+        {!empty && (
+          <View style={styles.groups}>
+            <View style={styles.groupsHead}>
+              <Text style={styles.section}>Sound Groups</Text>
+              <Pressable onPress={() => setNaming({})} hitSlop={12}>
+                <Text style={styles.link}>+ New group</Text>
+              </Pressable>
+            </View>
+            {groups.length === 0 && <Text style={styles.note}>Group sounds to filter them or make them drift together.</Text>}
+            {groups.map((g, gi) => (
+              <Pressable key={`${gi}-${g.name}`} style={styles.group} onPress={() => setGroupSheet(gi)}>
+                <Text style={styles.groupName} numberOfLines={1}>{g.name}</Text>
+                <Text style={styles.note}>
+                  {g.soundIndexes.length === 1 ? '1 sound' : `${g.soundIndexes.length} sounds`} ›
+                </Text>
+              </Pressable>
+            ))}
+          </View>
         )}
         {preset.sounds.map((s, i) => (
           <VolumeRow
@@ -226,7 +278,7 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
             label={s.name}
             value={s.volume}
             off={s.off}
-            note={s.off ? 'Off' : MODE_NOTE[s.playMode]}
+            note={soundNote(s.off ? 'Off' : MODE_NOTE[s.playMode] ?? `${Math.round(s.volume * 100)}%`, groups[groupOfSound(preset, i)]?.name)}
             onChange={(v) => {
               if (!s.off) engine.setSoundVolume(soundFile(s, i), v);
               update(withSound(i, v));
@@ -250,10 +302,19 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
             ? []
             : [
                 { label: menuSound.off ? 'Turn on' : 'Turn off', onPress: () => toggleSound(soundMenu) },
+                ...groupMenu(soundMenu),
                 { label: 'Remove from mix', destructive: true, onPress: () => confirmRemove(soundMenu) },
               ]
         }
         onClose={() => setSoundMenu(null)}
+      />
+      <GroupSheet preset={preset} index={groupSheet} onChange={regroup} onClose={() => setGroupSheet(null)} />
+      <TextPrompt
+        title={naming ? 'New Sound Group' : null}
+        initial={uniqueName('Group', groups.map((g) => g.name))}
+        okLabel="Create"
+        onOk={newGroup}
+        onCancel={() => setNaming(null)}
       />
       <PresetMenu
         preset={menu ? preset : null}
@@ -270,6 +331,11 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
   );
 }
 
+// What a sound row shows on the right, with its group in front.
+function soundNote(base: string, group: string | undefined): string {
+  return group ? `${group} · ${base}` : base;
+}
+
 const styles = StyleSheet.create({
   head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   link: { color: colors.accent, fontSize: 16 },
@@ -279,4 +345,9 @@ const styles = StyleSheet.create({
   onText: { color: colors.accent },
   disabled: { opacity: 0.5 },
   sounds: { gap: 14, paddingBottom: 24 },
+  groups: { gap: 8 },
+  groupsHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  section: { color: colors.text, fontSize: 17, fontWeight: '700' },
+  group: { backgroundColor: colors.card, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 14, flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
+  groupName: { color: colors.text, fontSize: 16, flexShrink: 1 },
 });
