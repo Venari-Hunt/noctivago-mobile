@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.14.0 — 2026-10-19
+
+- **Settings** (phone Mixer, phase 11): tap **Settings** at the top of the home screen.
+- **Updates:** Check for updates now, and **Install updates automatically** (on by default). Off, a downloaded update waits and Settings shows **Restart to update**.
+- **Sleep timer:** pick how long it fades out (10 s, 30 s, 1 min or 5 min), and optionally start a timer every time you press Play.
+- **New sounds:** the volume a sound gets when you add it to a mix (70% until you change it).
+- **Plugins:** on/off switches for the phone versions of the PC plugins, **Browse Sounds** (Freesound) and **Community**, like the PC's core plugin switches. Off hides the button or tab.
+- **About:** What's new and the source code and license, as links.
+- Arrives over the air.
+
 ## 0.13.0 — 2026-10-19
 
 - **Record a sound with the microphone** (phone Mixer, phase 10). In **Sounds**, tap **Record**, then **Start**. A red dot and a clock show it's recording; tap **Stop**, type a name (or leave it empty to name it by the date) and tap **Save**. **Record again** throws the take away and starts over. It lands in your sounds like any added file and can go in a mix.

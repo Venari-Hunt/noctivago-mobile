@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Alert, BackHandler, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { LibrarySound } from '../../library/domain/library';
 import { ActionMenu, type Action } from '../../ui/ActionMenu';
+import { getSettings } from '../../settings/store';
 import { TextPrompt } from '../../ui/TextPrompt';
 import { clockReport, type ClockSample } from '../domain/clockCheck';
 import { addGroup, groupOfSound, groupsOf, setMember } from '../domain/groupEdit';
@@ -54,9 +55,13 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
     onPlayingChange(on);
   };
 
-  const play = async () => {
+  // Play starts the timer from Settings ("Start a timer on Play") unless
+  // one was just picked.
+  const play = async (autoTimer = true) => {
     await engine.play();
     setPlayingBoth(true);
+    const auto = getSettings().sleepAutoMinutes;
+    if (autoTimer && auto > 0) startSleep(auto);
     const battery = await Battery.getBatteryLevelAsync();
     setRun({ samples: [{ wallMs: Date.now(), audioSec: engine.currentTime }], batteryStart: battery, batteryNow: battery });
   };
@@ -65,11 +70,14 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
     setPlayingBoth(false);
     setSleepEndsAt(null); // pausing turns the timer off
   };
-  const pickSleep = async (minutes: number) => {
-    if (!playingRef.current) await play();
-    engine.setSleepTimer(minutes * 60);
+  const startSleep = (minutes: number) => {
+    engine.setSleepTimer(minutes * 60, getSettings().sleepFadeSeconds);
     setSleepEndsAt(Date.now() + minutes * 60000);
     setSleepMinutes(minutes);
+  };
+  const pickSleep = async (minutes: number) => {
+    if (!playingRef.current) await play(false);
+    startSleep(minutes);
   };
   const sleepOff = () => {
     engine.cancelSleepTimer(true);

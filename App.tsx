@@ -11,10 +11,12 @@ import { PlayerEngine } from './src/player/engine';
 import { printNightLog } from './src/player/nightLog';
 import { importFromUri, type SavedPreset } from './src/player/storage';
 import { useIncomingFiles } from './src/player/useIncomingFiles';
+import { SettingsScreen } from './src/settings/components/SettingsScreen';
+import { useSettings } from './src/settings/store';
 import { useAutoUpdate } from './src/updates/useAutoUpdate';
 
-// Two screens, so plain state instead of a router: home (Mixes and Sounds
-// tabs), and the player for one preset. Leaving the player stops playback.
+// Three screens, so plain state instead of a router: home (Mixes, Sounds
+// and Community tabs), Settings, and the player for one preset. Leaving the player stops playback.
 // A preset opened from another app is imported and goes straight to the
 // player; a sound goes into the library.
 export default function App() {
@@ -24,7 +26,8 @@ export default function App() {
   const [tab, setTab] = useState<HomeTab>('mixes');
   const [libraryVersion, setLibraryVersion] = useState(0);
   const [playing, setPlaying] = useState(false);
-  const update = useAutoUpdate(playing);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const update = useAutoUpdate(playing, useSettings().autoInstallUpdates);
   // Hands the saved night log to `adb logcat` (scripts/night-report.mjs).
   useEffect(printNightLog, []);
 
@@ -49,12 +52,14 @@ export default function App() {
       .then(openPreset)
       .catch((e) => Alert.alert("Couldn't import that file", e instanceof Error ? e.message : String(e)));
   });
-  const version = `${update.label}${update.updateWaiting ? ' · new version ready, pause to load it' : ''}`;
+  const version = `${update.label}${update.waiting ? ` · ${update.waiting}` : ''}`;
 
   return (
     <>
       {open ? (
         <Player key={open.id} engine={engine.current} initial={open} onPlayingChange={setPlaying} onBack={() => setOpen(null)} />
+      ) : settingsOpen ? (
+        <SettingsScreen update={update} onBack={() => setSettingsOpen(false)} />
       ) : (
         <Home
           version={version}
@@ -66,6 +71,10 @@ export default function App() {
           preview={preview.current}
           libraryVersion={libraryVersion}
           onOpen={openPreset}
+          onSettings={() => {
+            preview.current.stop().catch(() => {});
+            setSettingsOpen(true);
+          }}
         />
       )}
       <StatusBar style="light" />

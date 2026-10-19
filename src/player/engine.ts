@@ -408,12 +408,12 @@ export class PlayerEngine {
 
   // Fades to silence over the last seconds, timed on the audio clock (JS
   // timers stall with the screen off), then reports through onSleepEnd.
-  setSleepTimer(seconds: number) {
+  setSleepTimer(seconds: number, fadeSeconds?: number) {
     const { ctx, sleepGain } = this;
     if (!ctx || !sleepGain) return;
     this.cancelSleepTimer(true);
     const now = ctx.currentTime;
-    const { fadeStart, end } = fadePlan(seconds);
+    const { fadeStart, end } = fadePlan(seconds, fadeSeconds);
     sleepGain.gain.setValueAtTime(1, now + fadeStart);
     sleepGain.gain.linearRampToValueAtTime(0, now + end);
     const marker = this.atAudioTime(now + end, () => {

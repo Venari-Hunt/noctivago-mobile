@@ -15,6 +15,7 @@ import {
 } from './domain/mixEdit';
 import { isPhoneManifest, phoneLayer } from '../community/domain/community';
 import { MANIFEST_NAME, presetFolderName, readPhonePreset, zipNameAsUtf8, type PhonePreset } from './domain/presetFile';
+import { getSettings } from '../settings/store';
 
 // Mixes (imported or made on the phone) live in the app's own storage, one
 // folder each:
@@ -112,7 +113,7 @@ export async function addLibrarySounds(preset: SavedPreset, sounds: LibrarySound
   for (const sound of sounds) {
     const file = audioFileName(sound.name, sound.ext, next.sounds.map((s, i) => soundFile(s, i)));
     await new File(soundAudioUri(sound)).copy(new File(dir, file));
-    next = appendSound(next, sound, file);
+    next = appendSound(next, sound, file, getSettings().newSoundVolume);
   }
   savePreset(next);
   return next;
