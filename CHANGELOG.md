@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.7.0 — 2026-10-18
+
+- **Build your own mixes** (phone Mixer, phase 7). In Mixes, **New mix** starts an empty mix and opens it. In a mix, **Add sounds** picks sounds from your library (search, several at once), or **From files on this phone** adds new ones to the library and picks them in one go. A sound added while the mix plays fades in; no reload.
+- Each sound in a mix plays on a loop, with its own volume slider. Hold a sound's name to **turn it off** (it stays in the mix, silent, and keeps its volume) or **remove** it.
+- Hold a mix in Mixes, or tap **⋯** in the mix: **Rename**, **Save a copy**, **Share**, **Delete**. Every change is saved as you make it.
+- **Share** sends the mix as a `.ncvpreset` (WhatsApp, Drive, email…). It imports on another phone and on the PC (Presets → **Import preset…**), with your volumes. Sounds in AAC, AIFF or MP4 audio share, but the PC skips their audio (it imports MP3, WAV, OGG, FLAC, M4A and Opus).
+- Sounds added to a mix are copied into it, so deleting a sound from the library leaves your mixes whole. Imported presets can be edited the same way (add, turn off, remove).
+- A mix whose sounds would take over ~300 MB of memory while playing says so.
+- A phone-added sound loops plainly (no crossfade at the seam yet; that is phase 8).
+- JavaScript only: arrives over the air on 0.6.0.
+
 ## 0.6.0 — 2026-10-18
 
 - **Your own sounds** (phone Mixer, phase 6): the home screen has two tabs, **Mixes** (your presets) and **Sounds** (your library). **Add sounds** opens the file picker and takes several files at once (MP3, WAV, FLAC, OGG, Opus, M4A, AAC, AIFF). You can also share audio files to Noctívago from another app, or pick it in "Open with"; one file or several. Each file is copied into the app, so moving or deleting the original doesn't break it.

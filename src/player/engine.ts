@@ -6,6 +6,7 @@ import {
   type ConstantSourceNode,
   type GainNode,
 } from 'react-native-audio-api';
+import { playedVolume, soundFile } from './domain/mixEdit';
 import { groupBusSpecs, groupIndexOf, shotSettings, soundFluctuation, wholeMixFadeIn, wholeMixSpec } from './domain/mixPlan';
 import { syncShot } from './domain/shotPlan';
 import { fadePlan } from './domain/sleepTimer';
@@ -32,6 +33,7 @@ const WATCH_SECONDS = 60;
 const WATCH_LOG_EVERY = 10; // a night log entry every 10 checks
 
 type Voice = { gain: GainNode; source?: AudioBufferSourceNode; shots?: ShotVoice; drift?: SoundDrift };
+type Routes = { wholeMix: MixBus; groups: (MixBus | null)[] };
 type Remote = 'play' | 'pause';
 
 export class PlayerEngine {
@@ -41,7 +43,13 @@ export class PlayerEngine {
   private sleepGain: GainNode | null = null;
   /** Silent node whose end event marks the sleep timer's end. */
   private sleepMarker: ConstantSourceNode | null = null;
-  private voices = new Map<number, Voice>();
+  /** By the sound's audio file (mixEdit.soundFile), which stays put when a
+   * sound before it is removed. */
+  private voices = new Map<string, Voice>();
+  private routes: Routes | null = null;
+  private playing = false;
+  /** How far ahead the Fluctuation walks are booked. */
+  private driftUntil = 0;
   private masterVolume = 0.8;
   private subs: { remove(): void }[] = [];
   private title = '';
@@ -82,28 +90,12 @@ export class PlayerEngine {
     const wholeMix = new MixBus(ctx, wholeMixSpec(manifest), master, true);
     const groups = groupBusSpecs(manifest).map((spec) => (spec ? new MixBus(ctx, spec, wholeMix.input, true) : null));
     this.buses = [wholeMix, ...groups.filter((b): b is MixBus => !!b)];
+    this.routes = { wholeMix, groups };
 
     // One at a time: each clip is decoded fully into memory, so decoding
     // them all at once could double the peak.
-    for (const [i, sound] of preset.sounds.entries()) {
-      const buffer = await ctx.decodeAudioData(audioUri(preset, i));
-      if (this.ctx !== ctx) return; // unloaded while decoding
-      const gain = ctx.createGain();
-      gain.gain.value = sound.volume;
-      gain.connect(groups[groupIndexOf(manifest, i)]?.input ?? wholeMix.input);
-      if (sound.playMode === 'loop') {
-        const source = ctx.createBufferSource();
-        source.buffer = buffer;
-        source.loop = true;
-        const drift = new SoundDrift(ctx, source.detune, soundFluctuation(manifest, i), gain);
-        source.connect(drift.input);
-        source.start();
-        this.voices.set(i, { gain, source, drift });
-      } else {
-        const shots = new ShotVoice(ctx, buffer, gain, sound.playMode, shotSettings(manifest, i, sound.playMode));
-        shots.sync = (voice, at) => this.syncGroup(voice, at);
-        this.voices.set(i, { gain, shots });
-      }
+    for (const i of preset.sounds.keys()) {
+      if (!(await this.addVoice(ctx, preset, i))) return; // unloaded while decoding
       onProgress?.(i + 1, preset.sounds.length);
     }
     this.drifts = [...this.buses, ...[...this.voices.values()].map((v) => v.drift)].flatMap((d) => d?.drifts ?? []);
@@ -114,12 +106,80 @@ export class PlayerEngine {
     this.listen();
   }
 
+  // Decodes sound `index` and wires it into its Sound Group (or the whole
+  // mix). False when the engine was unloaded meanwhile.
+  private async addVoice(ctx: AudioContext, preset: SavedPreset, index: number, fadeSeconds = 0): Promise<boolean> {
+    const sound = preset.sounds[index];
+    const { manifest } = preset;
+    const buffer = await ctx.decodeAudioData(audioUri(preset, index));
+    if (this.ctx !== ctx || !this.routes) return false;
+    const gain = ctx.createGain();
+    const volume = playedVolume(sound);
+    if (fadeSeconds > 0) {
+      gain.gain.setValueAtTime(0, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(volume, ctx.currentTime + fadeSeconds);
+    } else gain.gain.value = volume;
+    gain.connect(this.routes.groups[groupIndexOf(manifest, index)]?.input ?? this.routes.wholeMix.input);
+    const key = soundFile(sound, index);
+    if (sound.playMode === 'loop') {
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.loop = true;
+      const drift = new SoundDrift(ctx, source.detune, soundFluctuation(manifest, index), gain);
+      source.connect(drift.input);
+      source.start();
+      this.voices.set(key, { gain, source, drift });
+    } else {
+      const shots = new ShotVoice(ctx, buffer, gain, sound.playMode, shotSettings(manifest, index, sound.playMode));
+      shots.sync = (voice, at) => this.syncGroup(voice, at);
+      this.voices.set(key, { gain, shots });
+    }
+    return true;
+  }
+
+  /** Adds sound `index` of the edited mix while loaded, playing or not. */
+  async addSound(preset: SavedPreset, index: number) {
+    const ctx = this.ctx;
+    if (!ctx || !(await this.addVoice(ctx, preset, index, this.playing ? FADE_SECONDS : 0))) return;
+    const voice = this.voices.get(soundFile(preset.sounds[index], index));
+    if (this.playing) voice?.shots?.restart();
+    const drifts = voice?.drift?.drifts ?? [];
+    if (drifts.length === 0) return;
+    this.drifts.push(...drifts);
+    if (this.driftMarker) drifts.forEach((d) => d.book(this.driftUntil));
+    else this.bookDrift();
+  }
+
+  /** Fades a sound out of the mix and frees it. key: mixEdit.soundFile. */
+  removeSound(key: string) {
+    const voice = this.voices.get(key);
+    const ctx = this.ctx;
+    if (!voice || !ctx) return;
+    this.voices.delete(key);
+    const gone = new Set(voice.drift?.drifts ?? []);
+    this.drifts = this.drifts.filter((d) => !gone.has(d));
+    const free = () => {
+      voice.source?.stop();
+      voice.shots?.dispose();
+      voice.drift?.dispose();
+      voice.gain.disconnect();
+    };
+    if (!this.playing) return free();
+    this.ramp(voice.gain, 0, FADE_SECONDS);
+    // On the audio clock, like every timer here (the screen may be off).
+    const marker = this.atAudioTime(ctx.currentTime + FADE_SECONDS + 0.05, () => {
+      marker.disconnect();
+      free();
+    });
+  }
+
   // Books every Fluctuation walk ahead, then again before that runs out.
   private bookDrift() {
     const ctx = this.ctx;
     if (!ctx || this.drifts.length === 0) return;
     const now = ctx.currentTime;
-    this.drifts.forEach((d) => d.book(now + DRIFT_HORIZON));
+    this.driftUntil = now + DRIFT_HORIZON;
+    this.drifts.forEach((d) => d.book(this.driftUntil));
     const marker = this.atAudioTime(now + DRIFT_HORIZON / 2, () => {
       if (this.driftMarker !== marker) return;
       this.bookDrift();
@@ -184,6 +244,7 @@ export class PlayerEngine {
     if (!ctx || !master) return;
     this.suspendMarker = dropMarker(this.suspendMarker);
     await ctx.resume();
+    this.playing = true;
     // Random Interval fires on Play; Scheduled re-aims at the wall clock.
     this.voices.forEach((v) => v.shots?.restart());
     const now = ctx.currentTime;
@@ -204,6 +265,7 @@ export class PlayerEngine {
     const { ctx, master } = this;
     if (!ctx || !master) return;
     this.cancelSleepTimer();
+    this.playing = false;
     const now = ctx.currentTime;
     master.gain.cancelScheduledValues(now);
     master.gain.setValueAtTime(master.gain.value, now);
@@ -269,16 +331,22 @@ export class PlayerEngine {
     if (playing) this.ramp(this.master, volume);
   }
 
-  setSoundVolume(index: number, volume: number) {
-    this.ramp(this.voices.get(index)?.gain ?? null, volume);
+  /** key: the sound's audio file (mixEdit.soundFile). */
+  setSoundVolume(key: string, volume: number) {
+    this.ramp(this.voices.get(key)?.gain ?? null, volume);
   }
 
-  private ramp(node: GainNode | null, value: number) {
+  /** The lock-screen title, shown from the next play or pause. */
+  setTitle(title: string) {
+    this.title = title;
+  }
+
+  private ramp(node: GainNode | null, value: number, seconds = SLIDER_RAMP) {
     if (!node || !this.ctx) return;
     const now = this.ctx.currentTime;
     node.gain.cancelScheduledValues(now);
     node.gain.setValueAtTime(node.gain.value, now);
-    node.gain.linearRampToValueAtTime(value, now + SLIDER_RAMP);
+    node.gain.linearRampToValueAtTime(value, now + seconds);
   }
 
   async unload() {
@@ -298,6 +366,8 @@ export class PlayerEngine {
     this.voices.clear();
     this.buses.forEach((b) => b.dispose());
     this.buses = [];
+    this.routes = null;
+    this.playing = false;
     const ctx = this.ctx;
     this.ctx = null;
     this.master = null;

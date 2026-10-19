@@ -1,5 +1,5 @@
 import Slider from '@react-native-community/slider';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors } from './theme';
 
 type Props = {
@@ -7,18 +7,22 @@ type Props = {
   value: number;
   note?: string;
   disabled?: boolean;
+  /** Turned off in the mix: dimmed, slider still works. */
+  off?: boolean;
   onChange: (value: number) => void;
   /** Called once the finger lifts, to save the value. */
   onDone: (value: number) => void;
+  /** Hold the name for options (sounds in a mix). */
+  onLongPress?: () => void;
 };
 
-export function VolumeRow({ label, value, note, disabled, onChange, onDone }: Props) {
+export function VolumeRow({ label, value, note, disabled, off, onChange, onDone, onLongPress }: Props) {
   return (
     <View style={styles.row}>
-      <View style={styles.head}>
-        <Text style={[styles.label, disabled && styles.off]} numberOfLines={1}>{label}</Text>
+      <Pressable style={styles.head} onLongPress={onLongPress} disabled={!onLongPress} accessibilityHint={onLongPress ? 'Hold for options' : undefined}>
+        <Text style={[styles.label, (disabled || off) && styles.off]} numberOfLines={1}>{label}</Text>
         <Text style={styles.value}>{note ?? `${Math.round(value * 100)}%`}</Text>
-      </View>
+      </Pressable>
       <Slider
         value={value}
         disabled={disabled}
