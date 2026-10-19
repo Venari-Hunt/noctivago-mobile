@@ -12,7 +12,7 @@ const REPO = 'https://github.com/Venari-Hunt/noctivago-mobile';
 
 type Props = { update: UpdateState; onBack: () => void };
 
-// Settings, laid out like the desktop's: updates, sleep timer, new sounds,
+// Settings, laid out like the desktop's: updates, sleep timer, player, new sounds,
 // and on/off switches for the phone versions of the PC's core plugins.
 export function SettingsScreen({ update, onBack }: Props) {
   const s = useSettings();
@@ -70,6 +70,15 @@ export function SettingsScreen({ update, onBack }: Props) {
               onChange={(v) => setSettings({ sleepAutoMinutes: Number(v) })}
             />
           </ScrollView>
+        </Section>
+
+        <Section title="Player">
+          <Toggle
+            label="Show playback check"
+            help="A line under the sounds: how long audio kept running and battery use per hour. For overnight tests."
+            value={s.showPlaybackCheck}
+            onChange={(v) => setSettings({ showPlaybackCheck: v })}
+          />
         </Section>
 
         <Section title="New sounds">

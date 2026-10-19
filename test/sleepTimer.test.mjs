@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { countdown, fadePlan, presetLabel } from '../src/player/domain/sleepTimer.ts';
+import { countdown, fadePlan, presetLabel, timerButtonLabel } from '../src/player/domain/sleepTimer.ts';
 
 test('fade takes the last 30 s, or half of a short timer', () => {
   assert.deepEqual(fadePlan(900), { fadeStart: 870, end: 900 });
@@ -16,4 +16,9 @@ test('countdown reads like a clock', () => {
 
 test('preset labels match the desktop buttons', () => {
   assert.deepEqual([15, 60, 90, 120].map(presetLabel), ['15m', '1h', '1h 30m', '2h']);
+});
+
+test('timer button says Timer while off, else the time left', () => {
+  assert.equal(timerButtonLabel(null), 'Timer');
+  assert.equal(timerButtonLabel(1781000), '29:41');
 });

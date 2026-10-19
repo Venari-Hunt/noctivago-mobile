@@ -18,14 +18,16 @@
 
 ## Your own sounds
 
-The **Sounds** tab is your library. Tap **Add sounds** to pick audio files from the phone (several at once), or share them to Noctívago from another app. Tap a sound to listen, hold it to rename, tag or delete. Building mixes from your sounds is next.
+The **Sounds** tab is your library. Tap **Add sounds** to pick audio files from the phone (several at once), share them to Noctívago from another app, add one from a link, browse Freesound, or record one. Tap a sound to listen, hold it to rename, tag or delete.
+
+In **Mixes**, tap **New mix**, then **+ Sounds** at the bottom of the player to add some. The round button on each sound turns it on or off; hold its name to group it or remove it. Random Interval and Scheduled sounds have a small play button that plays one shot right away, to try their settings.
 
 ## What it plays
 
 - Loops, Random Interval and Scheduled sounds, with the desktop's own randomizing rules.
 - Fluctuation (volume, pitch and pan drift), Sound Groups, and the whole-mix filters and echo.
 - Reverb comes baked into the exported file, so the phone doesn't spend battery on it.
-- Master and per-sound volumes, a sleep timer, and Play/Pause on the lock screen.
+- Master and per-sound volumes, a sleep timer, and Play/Pause on the lock screen, all in a bar at the bottom of the player.
 
 Checked on a Galaxy Note 20 with the Beach preset (18 sounds): loudness, tonal balance and stereo balance match the desktop export within 1 dB. Battery and CPU use are still being optimized.
 

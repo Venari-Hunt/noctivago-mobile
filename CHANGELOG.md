@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.15.0 — 2026-10-19
+
+- **New look.** The Mixes, Sounds and Community tabs sit along the bottom. Each mix card lists its first few sounds and has a **⋯** button for its options (holding it still works). The version number is in Settings.
+- **The player keeps its controls at the bottom:** master volume, **Timer**, a round **Play / Pause** and **+ Sounds**. The Timer button counts down while a timer runs; tap it to pick 15m to 2h, or Off.
+- **Each sound is a card** with a round button that turns it on or off. Sound Groups are one row of chips above the sounds; tap one to edit it, or **+ Group** to make one.
+- **Try a Random Interval or Scheduled sound right away**, like the desktop's play button on those sounds: tap the small play button on its card. While the mix plays, the sound skips its wait and plays now, then carries on as usual. While paused, or for a sound that's off, it plays one shot by itself.
+- The "Audio kept running… · battery" line is off unless you turn on **Settings > Player > Show playback check** (for overnight tests).
+- Arrives over the air.
+
 ## 0.14.0 — 2026-10-19
 
 - **Settings** (phone Mixer, phase 11): tap **Settings** at the top of the home screen.

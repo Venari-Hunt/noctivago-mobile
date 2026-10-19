@@ -29,3 +29,8 @@ export function countdown(msLeft: number): string {
   const ss = String(s).padStart(2, '0');
   return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${ss}` : `${m}:${ss}`;
 }
+
+// The player's timer button: "Timer" while off, else the time left.
+export function timerButtonLabel(msLeft: number | null): string {
+  return msLeft === null ? 'Timer' : countdown(msLeft);
+}

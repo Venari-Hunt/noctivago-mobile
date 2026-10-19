@@ -6,7 +6,7 @@ import { PresetList } from '../../player/components/PresetList';
 import { colors, shared } from '../../player/components/theme';
 import type { SavedPreset } from '../../player/storage';
 import { useSettings } from '../../settings/store';
-import { Choice } from '../../ui/Choice';
+import { TabBar } from '../../ui/TabBar';
 
 export type HomeTab = 'mixes' | 'sounds' | 'community';
 
@@ -17,7 +17,6 @@ const TABS: { value: HomeTab; label: string }[] = [
 ];
 
 type Props = {
-  version: string;
   tab: HomeTab;
   onTab: (tab: HomeTab) => void;
   preview: PreviewPlayer;
@@ -27,29 +26,33 @@ type Props = {
 };
 
 // The home screen: your mixes (presets), your sounds (the library), and
-// presets people shared (Community, unless switched off in Settings).
-export function Home({ version, tab, onTab, preview, libraryVersion, onOpen, onSettings }: Props) {
+// presets people shared (Community, unless switched off in Settings), as
+// tabs along the bottom. The app's version is in Settings.
+export function Home({ tab, onTab, preview, libraryVersion, onOpen, onSettings }: Props) {
   const { community } = useSettings();
   const tabs = community ? TABS : TABS.filter((t) => t.value !== 'community');
   const shown = tabs.some((t) => t.value === tab) ? tab : 'mixes';
   return (
-    <View style={shared.page}>
-      <View style={styles.top}>
-        <Text style={shared.title}>Noctívago</Text>
-        <Pressable onPress={onSettings} hitSlop={12} accessibilityRole="button">
-          <Text style={styles.settings}>Settings</Text>
-        </Pressable>
+    <View style={styles.screen}>
+      <View style={[shared.page, styles.body]}>
+        <View style={styles.top}>
+          <Text style={shared.title}>Noctívago</Text>
+          <Pressable onPress={onSettings} hitSlop={12} accessibilityRole="button">
+            <Text style={styles.settings}>Settings</Text>
+          </Pressable>
+        </View>
+        {shown === 'mixes' && <PresetList onOpen={onOpen} />}
+        {shown === 'sounds' && <SoundLibrary preview={preview} version={libraryVersion} />}
+        {shown === 'community' && <CommunityList onOpen={onOpen} />}
       </View>
-      <Text style={shared.small}>{version}</Text>
-      <Choice options={tabs} value={shown} onChange={onTab} big />
-      {shown === 'mixes' && <PresetList onOpen={onOpen} />}
-      {shown === 'sounds' && <SoundLibrary preview={preview} version={libraryVersion} />}
-      {shown === 'community' && <CommunityList onOpen={onOpen} />}
+      <TabBar options={tabs} value={shown} onChange={onTab} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: colors.page },
+  body: { paddingBottom: 0 },
   top: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   settings: { color: colors.accent, fontSize: 17 },
 });

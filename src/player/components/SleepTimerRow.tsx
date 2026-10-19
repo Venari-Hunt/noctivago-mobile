@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useNow } from '../../ui/useNow';
 import { countdown, presetLabel, SLEEP_PRESET_MINUTES } from '../domain/sleepTimer';
 import { colors } from './theme';
 
@@ -13,19 +13,14 @@ type Props = {
   onOff: () => void;
 };
 
+// The timer's choices (in the player's Timer sheet): Off, then 15m to 2h.
 export function SleepTimerRow({ endsAt, minutes, disabled, onPick, onOff }: Props) {
-  const [now, setNow] = useState(Date.now);
-  useEffect(() => {
-    if (endsAt === null) return;
-    setNow(Date.now());
-    const id = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(id);
-  }, [endsAt]);
+  const now = useNow(endsAt !== null);
 
   return (
     <View style={styles.wrap}>
       <Text style={styles.label}>
-        Sleep timer{endsAt !== null ? ` · stops in ${countdown(endsAt - now)}` : ''}
+        {endsAt !== null ? `Stops in ${countdown(endsAt - now)}` : 'Stop playing after:'}
       </Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
         <Chip text="Off" active={endsAt === null} disabled={disabled} onPress={onOff} />
