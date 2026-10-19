@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.0 — 2026-10-19
+
+- **Add a sound from a link** (phone Mixer, phase 10). In **Sounds**, tap **From a link** and paste a direct link to an audio file (MP3, WAV, FLAC, OGG, Opus, M4A). The file downloads into your library like a picked one; its name comes from the server or the link. "https://" can be left out.
+- Links from YouTube, SoundCloud, Bandcamp and other video or music sites say to use the PC app: the PC fetches those with yt-dlp, which doesn't run on a phone. Files over 200 MB are refused.
+- JavaScript only: arrives over the air on 0.6.0.
+
 ## 0.9.0 — 2026-10-19
 
 - **Sound Groups** (phone Mixer, phase 9). In a mix, under **Sound Groups**, tap **+ New group**, name it, and tap the sounds to put in it. Or hold a sound's name: **Add to "<group>"**, **Leave "<group>"**, or **New group with this sound…**. A sound is in one group at a time, like on the PC; its row shows the group's name.
