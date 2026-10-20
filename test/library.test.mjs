@@ -7,6 +7,7 @@ import {
   formatLength,
   incomingFileName,
   isAudioFile,
+  missingFromLibrary,
   nameFromFile,
   parseTags,
   sortSounds,
@@ -83,4 +84,19 @@ test('lengths read like a clock', () => {
   assert.equal(formatLength(75), '1:15');
   assert.equal(formatLength(3725), '1:02:05');
   assert.equal(formatLength(null), '');
+});
+
+test('missingFromLibrary: same name and size is the same sound', () => {
+  const library = [{ name: 'Rain', bytes: 100 }];
+  const mix = [
+    { name: 'rain ', bytes: 100 },
+    { name: 'Rain', bytes: 200 },
+    { name: 'Waves', bytes: 50 },
+    { name: 'waves', bytes: 50 },
+  ];
+  assert.deepEqual(missingFromLibrary(mix, library), [
+    { name: 'Rain', bytes: 200 },
+    { name: 'Waves', bytes: 50 },
+  ]);
+  assert.deepEqual(missingFromLibrary([], library), []);
 });

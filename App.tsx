@@ -9,7 +9,7 @@ import { addFiles } from './src/library/storage';
 import { Player } from './src/player/components/Player';
 import { PlayerEngine } from './src/player/engine';
 import { printNightLog } from './src/player/nightLog';
-import { importFromUri, type SavedPreset } from './src/player/storage';
+import { addOldMixesToLibrary, importFromUri, type SavedPreset } from './src/player/storage';
 import { useIncomingFiles } from './src/player/useIncomingFiles';
 import { SettingsScreen } from './src/settings/components/SettingsScreen';
 import { useSettings } from './src/settings/store';
@@ -30,6 +30,12 @@ export default function App() {
   const update = useAutoUpdate(playing, useSettings().autoInstallUpdates);
   // Hands the saved night log to `adb logcat` (scripts/night-report.mjs).
   useEffect(printNightLog, []);
+  // Sounds of mixes imported before 0.15.3 join the library, once.
+  useEffect(() => {
+    addOldMixesToLibrary()
+      .then((added) => added > 0 && setLibraryVersion((v) => v + 1))
+      .catch(() => {});
+  }, []);
 
   const openPreset = async (preset: SavedPreset) => {
     await preview.current.stop();

@@ -153,3 +153,22 @@ export function formatLength(seconds: number | null): string {
   const s = String(total % 60).padStart(2, '0');
   return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${s}` : `${m}:${s}`;
 }
+
+/** One sound of a saved mix, as the library sees it. */
+export type MixSound = { name: string; bytes: number };
+
+// The sounds of a mix the library still lacks. Same name (any case) and same
+// file size counts as the same sound: a mix built from the library copies
+// the file as is, so its sounds are never added twice. Repeats inside the
+// mix count once.
+export function missingFromLibrary<T extends MixSound>(mix: T[], library: MixSound[]): T[] {
+  const key = (s: MixSound) => `${s.name.trim().toLowerCase()}|${s.bytes}`;
+  const have = new Set(library.map(key));
+  const out: T[] = [];
+  for (const s of mix) {
+    if (have.has(key(s))) continue;
+    have.add(key(s));
+    out.push(s);
+  }
+  return out;
+}

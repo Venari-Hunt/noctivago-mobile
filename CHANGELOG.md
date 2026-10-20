@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.15.3 — 2026-10-20
+
+- **Sounds from imported and Community mixes show up in Sounds.** Importing a mix (a file, Open with, Share, or a Community download) also adds its sounds to your library, so you can put them in other mixes. A sound already in the library (same name and size) is not added twice. Mixes already on the phone get their sounds added once, the first time the app opens after this update.
+- Arrives over the air.
+
 ## 0.15.2 — 2026-10-20
 
 - **Sound sliders work like the PC's.** The middle is 100% (the sound at its own level). Drag right to boost up to 200%; drag left to go quieter, with finer control near silence: the left half steps evenly in loudness down to silence instead of spending most of its travel on the loud end. Master volume is unchanged.

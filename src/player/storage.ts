@@ -1,7 +1,7 @@
 import { Directory, File, Paths } from 'expo-file-system';
 import { strFromU8, strToU8, unzipSync, zipSync } from 'fflate';
-import type { LibrarySound } from '../library/domain/library';
-import { soundAudioUri } from '../library/storage';
+import { extensionOf, type LibrarySound } from '../library/domain/library';
+import { addFromMix, soundAudioUri } from '../library/storage';
 import {
   appendSound,
   audioFileName,
@@ -23,7 +23,8 @@ import { getSettings } from '../settings/store';
 //   presets/<folder>/audio/<file>   each sound's audio (mixEdit.soundFile)
 // The original zip is not kept; its audio is all the phone needs. A sound
 // added from the library is copied in, so deleting it from the library
-// leaves the mix whole.
+// leaves the mix whole. An imported mix's sounds also join the library
+// (`addMixToLibrary`).
 
 export type SavedPreset = PhonePreset & {
   id: string;
@@ -175,7 +176,7 @@ function storedName(entry: string, index: number): string {
 // A community file carries a phone copy under phone/ (`community/domain`):
 // that copy is what gets imported. (The Community tab downloads only that
 // part: `community/domain/partial.ts`.)
-export function importBytes(bytes: Uint8Array): SavedPreset {
+export async function importBytes(bytes: Uint8Array): Promise<SavedPreset> {
   let entries: Record<string, Uint8Array>;
   try {
     entries = Object.fromEntries(Object.entries(unzipSync(bytes)).map(([name, data]) => [zipNameAsUtf8(name), data]));
@@ -189,7 +190,7 @@ export function importBytes(bytes: Uint8Array): SavedPreset {
 
 // Saves a phone preset from its unpacked files (preset.json + audio/), names
 // already fixed with `zipNameAsUtf8`.
-export function importEntries(entries: Record<string, Uint8Array>): SavedPreset {
+export async function importEntries(entries: Record<string, Uint8Array>): Promise<SavedPreset> {
   const manifestEntry = entries[MANIFEST_NAME] ?? entries[`./${MANIFEST_NAME}`];
   if (!manifestEntry) throw new Error("That file isn't a Noctívago preset.");
   const read = readPhonePreset(strFromU8(manifestEntry), Object.keys(entries));
@@ -200,6 +201,7 @@ export function importEntries(entries: Record<string, Uint8Array>): SavedPreset 
   const dir = new Directory(root(), id);
   const audio = new Directory(dir, 'audio');
   audio.create({ intermediates: true });
+  let saved: SavedPreset;
   try {
     const files = read.audioEntries.map(storedName);
     read.audioEntries.forEach((entry, i) => {
@@ -208,14 +210,54 @@ export function importEntries(entries: Record<string, Uint8Array>): SavedPreset 
       file.writeSync(entries[entry]);
     });
     const sounds = read.preset.sounds.map((s, i) => ({ ...s, file: files[i] }));
-    const saved: SavedPreset = { ...read.preset, sounds, id, master: 0.8, importedAt: now };
+    saved = { ...read.preset, sounds, id, master: 0.8, importedAt: now };
     savePreset(saved);
     for (const old of listPresets()) {
       if (old.id !== id && old.name === saved.name) deletePreset(old);
     }
-    return saved;
   } catch (e) {
     dir.delete();
     throw e;
   }
+  try {
+    await addMixToLibrary(saved);
+  } catch {
+    // The mix is saved; the library copy is a bonus.
+  }
+  return saved;
+}
+
+// The mix's sounds the library lacks, copied in (with their Freesound
+// credit, when the mix carries one).
+export async function addMixToLibrary(preset: SavedPreset): Promise<number> {
+  const raw = Array.isArray(preset.manifest.sounds) ? (preset.manifest.sounds as Record<string, unknown>[]) : [];
+  return addFromMix(
+    withFiles(preset).sounds.map((s, i) => {
+      const file = soundFile(s, i);
+      const source = raw[i]?.source;
+      return {
+        audio: new File(audioDir(preset), file),
+        name: s.name,
+        ext: extensionOf(file) || 'ogg',
+        durationSeconds: s.durationSeconds,
+        source: source && typeof source === 'object' && (source as { type?: unknown }).type === 'freesound' ? (source as LibrarySound['source']) : null,
+      };
+    }),
+  );
+}
+
+// Once, for mixes imported before 0.15.3: their sounds join the library.
+// A marker file in the presets folder keeps it from running again (so a
+// sound you later delete from Sounds stays deleted).
+export async function addOldMixesToLibrary(): Promise<number> {
+  const marker = new File(root(), '.library-synced');
+  if (marker.exists) return 0;
+  let added = 0;
+  for (const preset of listPresets()) {
+    try {
+      added += await addMixToLibrary(preset);
+    } catch {}
+  }
+  marker.create();
+  return added;
 }
