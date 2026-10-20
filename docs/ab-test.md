@@ -7,6 +7,7 @@ Compares what the phone plays with what the desktop engine renders for the same 
 1. Phone (ask the owner first): open the preset in the app, then record the app's own stream, which is captured before the phone's volume and Samsung's effects:
    `scrcpy -s <ip:port> --no-video --no-playback --no-window --audio-source=playback --audio-codec=flac --record=phone.flac --time-limit=210`
    and tap Play within the first seconds. (`--audio-source=output` records after the volume slider and is ~20 dB quieter.)
+   **Absolute level unproven (2026-10-19):** a −38 dB RMS tone played by VLC came back +14.6 dB in this capture (same at media volume 3 and 5), and Noctívago's loops come back ~+3.8 dB over volume × master. Trust level *changes* within one capture; don't read a phone-vs-desktop level gap from it until a known tone through the app and through Chrome agree.
 2. Desktop: unzip the same `.ncvpreset` into a folder, then from `scripts/ab`:
    `NCV_USERDATA=<temp dir> node --import ./electron-stub.mjs render-desktop.mjs <folder> 300 desktop.wav`
    (`SKIP=name1,name2` leaves sounds out, for isolating one.)
