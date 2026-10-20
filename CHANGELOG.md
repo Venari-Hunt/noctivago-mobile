@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.15.2 — 2026-10-20
+
+- **Sound sliders work like the PC's.** The middle is 100% (the sound at its own level). Drag right to boost up to 200%; drag left to go quieter, with finer control near silence: the left half steps evenly in loudness down to silence instead of spending most of its travel on the loud end. Master volume is unchanged.
+- Arrives over the air.
+
 ## 0.15.1 — 2026-10-20
 
 - **Sounds can go up to 200%**, like the PC's volume sliders. A mix boosted on the PC (Rain Inside: Rain on the River at 104%, Raven at 145%) now plays as loud on the phone instead of stopping at 100%. Each sound's slider reaches 200%; master volume still stops at 100%.

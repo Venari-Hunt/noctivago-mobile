@@ -2,11 +2,13 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { PlayButton } from './PlayButton';
 import { VolumeRow } from './VolumeRow';
 import { colors } from './theme';
-import { VOLUME_MAX_GAIN } from '../../shared/constants.js';
+import { gainToPosition, positionToGain } from '../../shared/volumeScale.js';
 
 // One sound in a mix: an on/off button, then its name and volume. Hold the
 // name for more (group, remove). Random Interval and Scheduled sounds also
 // get a small play button that plays one shot now (the desktop's test fire).
+// The slider is the desktop's: center is 100%, left tapers in dB to silence,
+// right goes up to 200%. Values in and out are gains.
 type Props = {
   label: string;
   value: number;
@@ -19,7 +21,7 @@ type Props = {
   onTest?: () => void;
 };
 
-export function SoundCard({ label, off, onToggle, onTest, ...rest }: Props) {
+export function SoundCard({ label, value, off, onToggle, onChange, onDone, onTest, ...rest }: Props) {
   return (
     <View style={[styles.card, off && styles.cardOff]}>
       <Pressable
@@ -33,7 +35,14 @@ export function SoundCard({ label, off, onToggle, onTest, ...rest }: Props) {
         <View style={[styles.dot, !off && styles.dotOn]} />
       </Pressable>
       <View style={styles.body}>
-        <VolumeRow label={label} off={off} max={VOLUME_MAX_GAIN} {...rest} />
+        <VolumeRow
+          label={label}
+          off={off}
+          value={gainToPosition(value)}
+          onChange={(p) => onChange(positionToGain(p))}
+          onDone={(p) => onDone(positionToGain(p))}
+          {...rest}
+        />
       </View>
       {onTest && <PlayButton small playing={false} label={`Play one shot of ${label} now`} onPress={onTest} />}
     </View>
