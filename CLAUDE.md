@@ -13,7 +13,7 @@ Noctívago for phones: plays presets exported by the desktop app like the Mixer 
 - `src/player/shotVoice.ts` — Random Interval / Scheduled shots, planned one ahead on the audio clock; the engine re-books a dropped one once a minute (`check()`).
 - `src/player/seamless.ts` — seamless loops for phone-added sounds: the desktop's tail crossfade, applied to the decoded clip at load (rules in `domain/seamlessLoop.ts`; desktop phone exports have `crossfadeSeconds: 0` and loop plainly).
 - `src/player/mixGraph.ts` — Fluctuation (drift booked ahead on the audio clock), Sound Group and whole-mix buses; rules in `domain/drift.ts` and `domain/mixPlan.ts`. A group edit calls `engine.regroup()`: buses are reused while their spec is unchanged, and only sounds whose route changed move (a 0.06 s dip).
-- `src/shared/` — copies of the desktop's `src/shared/` rules (shot picks, Fluctuation, constants such as the 0-2x volume range). Never edit here: change the desktop, then `node scripts/sync-shared.mjs`; `npm test` catches drift.
+- `src/shared/` — copies of the desktop's `src/shared/` rules (shot picks, Fluctuation, constants such as the 0-2x volume range, `volumeScale.js` for the sound sliders). Never edit here: change the desktop, then `node scripts/sync-shared.mjs`; `npm test` catches drift.
 - `src/player/useIncomingFiles.ts` — files handed over by other apps ("Open with", Share): presets go to Mixes, audio to Sounds; Android filters in `app.json`.
 - `src/player/nightLog.ts` — night log for unattended overnight tests; morning read-back `scripts/night-fetch.mjs` + `night-report.mjs`, steps in `docs/night-test.md`.
 - `scripts/ab/` — A/B the phone against the desktop engine (record, render, compare); steps in `docs/ab-test.md`.
