@@ -3,6 +3,8 @@ import { SliderRow } from '../../ui/SliderRow';
 type Props = {
   label: string;
   value: number;
+  /** Highest value; sounds go above 1 (a boost), master volume stops at 1. */
+  max?: number;
   note?: string;
   disabled?: boolean;
   /** Turned off in the mix: dimmed, slider still works. */

@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { PlayButton } from './PlayButton';
 import { VolumeRow } from './VolumeRow';
 import { colors } from './theme';
+import { VOLUME_MAX_GAIN } from '../../shared/constants.js';
 
 // One sound in a mix: an on/off button, then its name and volume. Hold the
 // name for more (group, remove). Random Interval and Scheduled sounds also
@@ -32,7 +33,7 @@ export function SoundCard({ label, off, onToggle, onTest, ...rest }: Props) {
         <View style={[styles.dot, !off && styles.dotOn]} />
       </Pressable>
       <View style={styles.body}>
-        <VolumeRow label={label} off={off} {...rest} />
+        <VolumeRow label={label} off={off} max={VOLUME_MAX_GAIN} {...rest} />
       </View>
       {onTest && <PlayButton small playing={false} label={`Play one shot of ${label} now`} onPress={onTest} />}
     </View>
