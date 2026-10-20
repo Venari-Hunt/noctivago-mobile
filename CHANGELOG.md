@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.15.1 — 2026-10-20
+
+- **Sounds can go up to 200%**, like the PC's volume sliders. A mix boosted on the PC (Rain Inside: Rain on the River at 104%, Raven at 145%) now plays as loud on the phone instead of stopping at 100%. Each sound's slider reaches 200%; master volume still stops at 100%.
+- Arrives over the air.
+
 ## 0.15.0 — 2026-10-19
 
 - **New look.** The Mixes, Sounds and Community tabs sit along the bottom. Each mix card lists its first few sounds and has a **⋯** button for its options (holding it still works). The version number is in Settings.

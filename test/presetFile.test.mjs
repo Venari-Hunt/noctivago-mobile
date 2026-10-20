@@ -20,7 +20,7 @@ test('reads a phone preset and finds each sound\'s audio', () => {
   assert.equal(r.ok, true);
   assert.equal(r.preset.name, 'Beach');
   assert.deepEqual(r.audioEntries, ['audio/waves.opus', 'audio/gull.opus']);
-  assert.deepEqual(r.preset.sounds.map((s) => [s.playMode, s.volume]), [['loop', 0.5], ['scatter', 1]]);
+  assert.deepEqual(r.preset.sounds.map((s) => [s.playMode, s.volume]), [['loop', 0.5], ['scatter', 2]]);
 });
 
 test('a desktop preset asks for the phone export', () => {
@@ -44,8 +44,10 @@ test('folder names are plain ASCII and unique per import', () => {
   assert.equal(presetFolderName('***', 36), 'preset-10');
 });
 
-test('volumes stay within 0..1', () => {
+test('volumes stay within 0..2, the desktop slider range', () => {
   assert.equal(clampVolume(-1), 0);
+  assert.equal(clampVolume(1.45), 1.45);
+  assert.equal(clampVolume(3), 2);
   assert.equal(clampVolume('x'), 0.7);
 });
 
