@@ -2,7 +2,8 @@ import Constants from 'expo-constants';
 import * as DocumentPicker from 'expo-document-picker';
 import { Directory, File, Paths } from 'expo-file-system';
 import { decodeAudioData } from 'react-native-audio-api';
-import { incomingFileName, isAudioFile, nameFromFile, soundFolderName, storedExtension, type LibrarySound } from './domain/library';
+import type { FreesoundSource } from './domain/freesound';
+import { incomingFileName, isAudioFile, missingFromLibrary, nameFromFile, soundFolderName, storedExtension, type LibrarySound } from './domain/library';
 import { MAX_LINK_BYTES } from './domain/link';
 
 // Sounds you add live in the app's own storage, one folder each:
@@ -148,4 +149,42 @@ async function addOne(incoming: IncomingSound, fileName: string, now: number, sa
     dir.delete();
     throw e;
   }
+}
+
+/** A sound of a saved mix, to copy into the library. */
+export type FromMix = { audio: File; name: string; ext: string; durationSeconds: number | null; source?: FreesoundSource | null };
+
+// Copies the sounds of a mix the library lacks (`missingFromLibrary`), so
+// sounds that came with an imported or Community mix show in Sounds too, as
+// on the desktop. Returns how many were added.
+export async function addFromMix(sounds: FromMix[]): Promise<number> {
+  const library = listSounds().map((s) => ({ name: s.name, bytes: new File(soundAudioUri(s)).size }));
+  const missing = missingFromLibrary(
+    sounds.filter((s) => s.audio.exists).map((s) => ({ ...s, bytes: s.audio.size })),
+    library,
+  );
+  const now = Date.now();
+  let added = 0;
+  for (const [i, s] of missing.entries()) {
+    const id = soundFolderName(s.name, now, i);
+    const dir = new Directory(root(), id);
+    dir.create({ intermediates: true });
+    try {
+      await s.audio.copy(new File(dir, `audio.${s.ext}`));
+      saveSound({
+        id,
+        name: s.name,
+        fileName: `${s.name}.${s.ext}`,
+        ext: s.ext,
+        tags: [],
+        durationSeconds: s.durationSeconds,
+        addedAt: now + i,
+        source: s.source ?? null,
+      });
+      added++;
+    } catch {
+      dir.delete();
+    }
+  }
+  return added;
 }
