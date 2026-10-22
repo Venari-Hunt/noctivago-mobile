@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.15.4 — 2026-10-22
+
+- **The Sound Group screen is calmer.** Group volume is one slider at the top. The group's sounds are a short list with Remove, and "+ Add sounds" opens the rest of the mix to pick from (a sound in another group says "moves from X"). Filters and Drift are folded cards that say what is on ("2 on", "All off") and open one at a time. Gain moved out of Filters and became the group volume.
+- Arrives over the air.
+
 ## 0.15.3 — 2026-10-20
 
 - **Sounds from imported and Community mixes show up in Sounds.** Importing a mix (a file, Open with, Share, or a Community download) also adds its sounds to your library, so you can put them in other mixes. A sound already in the library (same name and size) is not added twice. Mixes already on the phone get their sounds added once, the first time the app opens after this update.
