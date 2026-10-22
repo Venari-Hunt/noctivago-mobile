@@ -116,6 +116,21 @@ export function setSoundOn<T extends PhonePreset>(preset: T, index: number, on: 
   return { ...preset, sounds: preset.sounds.map((s, i) => (i === index ? { ...s, off: !on } : s)) };
 }
 
+/** Renames sound `index` in this mix only (the audio file and the library
+ * keep their names). An empty name changes nothing. */
+export function renameSoundAt<T extends PhonePreset>(preset: T, index: number, name: string): T {
+  const next = name.trim().slice(0, 80);
+  if (!next || !preset.sounds[index]) return preset;
+  return {
+    ...preset,
+    sounds: preset.sounds.map((s, i) => (i === index ? { ...s, name: next } : s)),
+    manifest: {
+      ...preset.manifest,
+      sounds: manifestSounds(preset.manifest).map((s, i) => (i === index ? { ...s, name: next } : s)),
+    },
+  };
+}
+
 export function renamed<T extends PhonePreset>(preset: T, name: string): T {
   return { ...preset, name, manifest: { ...preset.manifest, name } };
 }

@@ -8,6 +8,7 @@ import {
   emptyManifest,
   playedVolume,
   removeSoundAt,
+  renameSoundAt,
   setSoundOn,
   shareManifest,
   soundFile,
@@ -72,6 +73,16 @@ test('a sound turned off plays silent but keeps its volume', () => {
   assert.equal(playedVolume(p.sounds[0]), 0);
   assert.equal(p.sounds[0].volume, 0.5);
   assert.equal(playedVolume(setSoundOn(p, 0, true).sounds[0]), 0.5);
+});
+
+test('renaming a sound changes its name in the mix and manifest, not its file', () => {
+  const p = renameSoundAt(imported(), 1, '  Seagull  ');
+  assert.equal(p.sounds[1].name, 'Seagull');
+  assert.equal(p.manifest.sounds[1].name, 'Seagull');
+  assert.equal(p.manifest.sounds[1].bundleName, 'gull.opus');
+  assert.equal(p.sounds[0].name, 'Waves');
+  assert.equal(renameSoundAt(imported(), 1, '   ').sounds[1].name, 'Gull');
+  assert.equal(renameSoundAt(imported(), 9, 'x').sounds.length, 3);
 });
 
 test('file names are readable, unique ignoring case, and pass the desktop check', () => {

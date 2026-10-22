@@ -9,7 +9,7 @@ import { BottomSheet } from '../../ui/BottomSheet';
 import { TextPrompt } from '../../ui/TextPrompt';
 import { clockReport, type ClockSample } from '../domain/clockCheck';
 import { addGroup, groupOfSound, groupsOf, setMember } from '../domain/groupEdit';
-import { decodedMb, HEAVY_MIX_MB, playedVolume, setSoundOn, soundFile, uniqueName } from '../domain/mixEdit';
+import { decodedMb, HEAVY_MIX_MB, playedVolume, renameSoundAt, setSoundOn, soundFile, uniqueName } from '../domain/mixEdit';
 import type { PlayerEngine } from '../engine';
 import { addLibrarySounds, removeSound, savePreset, type SavedPreset } from '../storage';
 import { AddSoundsSheet } from './AddSoundsSheet';
@@ -53,6 +53,8 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
   const { showPlaybackCheck } = useSettings();
   const [soundMenu, setSoundMenu] = useState<number | null>(null);
   const [groupSheet, setGroupSheet] = useState<number | null>(null);
+  /** The sound being renamed (its name dialog is open). */
+  const [renaming, setRenaming] = useState<number | null>(null);
   /** The "New group" name dialog; soundIndex joins the new group. */
   const [naming, setNaming] = useState<{ soundIndex?: number } | null>(null);
   const playingRef = useRef(false);
@@ -331,11 +333,23 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
                 ...(menuSound.volume === DEFAULT_VOLUME
                   ? []
                   : [{ label: 'Reset volume', onPress: () => resetVolume(soundMenu) }]),
+                { label: 'Rename…', onPress: () => setRenaming(soundMenu) },
                 ...groupMenu(soundMenu),
                 { label: 'Remove from mix', destructive: true, onPress: () => confirmRemove(soundMenu) },
               ]
         }
         onClose={() => setSoundMenu(null)}
+      />
+      <TextPrompt
+        title={renaming === null ? null : 'Rename sound'}
+        initial={renaming === null ? '' : preset.sounds[renaming]?.name ?? ''}
+        okLabel="Save"
+        onOk={(name) => {
+          const i = renaming;
+          setRenaming(null);
+          if (i !== null) save(renameSoundAt(preset, i, name));
+        }}
+        onCancel={() => setRenaming(null)}
       />
       <GroupSheet preset={preset} index={groupSheet} onChange={regroup} onClose={() => setGroupSheet(null)} />
       <TextPrompt
