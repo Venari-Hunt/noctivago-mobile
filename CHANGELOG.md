@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.15.6 — 2026-10-22
+
+- **Rename a sound in a mix.** Tap ⋮ (or hold the name) on a sound and pick Rename… The new name applies to this mix only; the sound in your library keeps its name.
+- Arrives over the air.
+
 ## 0.15.5 — 2026-10-22
 
 - **A ⋮ button on every sound** opens the same menu as holding its name (turn on or off, group, remove), so options no longer hide behind a long-press. The menu also gets **Reset volume**, like the PC's, shown when the sound isn't at its default.
