@@ -18,6 +18,7 @@ import { GroupSheet } from './GroupSheet';
 import { PresetMenu } from './PresetMenu';
 import { SleepTimerRow } from './SleepTimerRow';
 import { SoundCard } from './SoundCard';
+import { DEFAULT_VOLUME } from '../../shared/volumeScale.js';
 import { TransportBar } from './TransportBar';
 import { colors, shared } from './theme';
 
@@ -180,6 +181,12 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
     save(next);
   };
 
+  const resetVolume = (i: number) => {
+    const next = withSound(i, DEFAULT_VOLUME);
+    if (!next.sounds[i].off) engine.setSoundVolume(soundFile(next.sounds[i], i), DEFAULT_VOLUME);
+    save(next);
+  };
+
   const confirmRemove = (i: number) => {
     const sound = preset.sounds[i];
     Alert.alert(
@@ -244,7 +251,7 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
         {empty ? (
           <Text style={shared.help}>
             No sounds yet. Tap + Sounds below to pick some from your library. The round button on a sound turns it on or
-            off; hold its name to group it or remove it. Random Interval and Scheduled sounds get a small play button
+            off; tap its ⋮ (or hold its name) to group it or remove it. Random Interval and Scheduled sounds get a small play button
             that plays one shot right away, to try their settings.
           </Text>
         ) : (
@@ -321,6 +328,9 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
             ? []
             : [
                 { label: menuSound.off ? 'Turn on' : 'Turn off', onPress: () => toggleSound(soundMenu) },
+                ...(menuSound.volume === DEFAULT_VOLUME
+                  ? []
+                  : [{ label: 'Reset volume', onPress: () => resetVolume(soundMenu) }]),
                 ...groupMenu(soundMenu),
                 { label: 'Remove from mix', destructive: true, onPress: () => confirmRemove(soundMenu) },
               ]
