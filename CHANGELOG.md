@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.15.5 — 2026-10-22
+
+- **A ⋮ button on every sound** opens the same menu as holding its name (turn on or off, group, remove), so options no longer hide behind a long-press. The menu also gets **Reset volume**, like the PC's, shown when the sound isn't at its default.
+- Arrives over the air.
+
 ## 0.15.4 — 2026-10-22
 
 - **The Sound Group screen is calmer.** Group volume is one slider at the top. The group's sounds are a short list with Remove, and "+ Add sounds" opens the rest of the mix to pick from (a sound in another group says "moves from X"). Filters and Drift are folded cards that say what is on ("2 on", "All off") and open one at a time. Gain moved out of Filters and became the group volume.
