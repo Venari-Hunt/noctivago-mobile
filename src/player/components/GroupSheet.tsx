@@ -19,12 +19,14 @@ import {
   setMember,
   type DriftAxisName,
   type FilterField,
+  type Group,
 } from '../domain/groupEdit';
 import type { SavedPreset } from '../storage';
 import { colors, shared } from './theme';
 
-// One Sound Group: its sounds, and the filters and drift they share (the
-// desktop's Remix → Group mode, minus EQ, which stays as the PC set it).
+// One Sound Group: its volume, its sounds, and the filters and drift they
+// share (the desktop's Remix → Group mode, minus EQ, which stays as the PC
+// set it). Volume and sounds are always in view; filters and drift fold away.
 type Props = {
   preset: SavedPreset;
   /** The group shown; null hides the sheet. */
@@ -38,11 +40,11 @@ const hz = (v: number) => (v >= 1000 ? `${(v / 1000).toFixed(v % 1000 ? 1 : 0)} 
 const FILTER_ROWS: { field: FilterField; label: string; text: (v: number) => string; step?: number }[] = [
   { field: 'highpassHz', label: 'High-pass (cuts lows)', text: (v) => (v > 0 ? hz(v) : 'Off') },
   { field: 'lowpassHz', label: 'Low-pass (cuts highs)', text: (v) => (v < 20000 ? hz(v) : 'Off') },
-  { field: 'gainDb', label: 'Gain', text: (v) => `${v > 0 ? '+' : ''}${v} dB`, step: 0.5 },
   { field: 'echoDelayMs', label: 'Echo delay', text: (v) => (v > 0 ? `${v} ms` : 'Off'), step: 10 },
   { field: 'echoDecay', label: 'Echo decay', text: (v) => (v > 0 ? v.toFixed(2) : 'Off'), step: 0.01 },
 ];
 const isHz = (f: FilterField): f is 'highpassHz' | 'lowpassHz' => f === 'highpassHz' || f === 'lowpassHz';
+const gainText = (v: number) => (v === 0 ? '0 dB (as is)' : `${v > 0 ? '+' : ''}${v} dB`);
 
 const pan = (v: number) => (Math.abs(v) < 0.005 ? 'Center' : `${v < 0 ? 'L' : 'R'} ${Math.round(Math.abs(v) * 100)}%`);
 const DRIFT_ROWS: { axis: DriftAxisName; label: string; text: (v: number) => string; step: number }[] = [
@@ -52,9 +54,17 @@ const DRIFT_ROWS: { axis: DriftAxisName; label: string; text: (v: number) => str
 ];
 
 type DriftMode = 'off' | 'together' | 'each';
+type Fold = 'add' | 'filters' | 'drift';
+
+function driftMode(group: Group, axis: DriftAxisName): DriftMode {
+  const a = driftAxis(group, axis);
+  return !a.enabled ? 'off' : a.perSound ? 'each' : 'together';
+}
 
 export function GroupSheet({ preset, index, onChange, onClose }: Props) {
   const [renaming, setRenaming] = useState(false);
+  /** The folded card that is open; one at a time keeps the screen short. */
+  const [open, setOpen] = useState<Fold | null>(null);
   /** The slider being dragged and its value, shown before it's saved. */
   const [drag, setDrag] = useState<{ key: string; value: number } | null>(null);
   const groups = groupsOf(preset);
@@ -66,6 +76,15 @@ export function GroupSheet({ preset, index, onChange, onClose }: Props) {
     setDrag(null);
     onChange(next);
   };
+  const toggle = (k: Fold) => setOpen(open === k ? null : k);
+
+  const members = group.soundIndexes.filter((i) => preset.sounds[i]);
+  const others = preset.sounds.map((_, i) => ({ i, at: groupOfSound(preset, i) })).filter(({ at }) => at !== index);
+  const activeFilters =
+    FILTER_ROWS.filter(({ field }) => filterValue(group, field) !== FILTER_RANGES[field].off).length;
+  const filtersNote = activeFilters ? `${activeFilters} on` : 'All off';
+  const driftOn = DRIFT_ROWS.filter(({ axis }) => driftMode(group, axis) !== 'off').map(({ axis }) => axis);
+  const driftNote = driftOn.length ? driftOn.join(', ') : 'All off';
 
   const confirmDelete = () =>
     Alert.alert(`Delete the group "${group.name}"?`, 'Its sounds stay in the mix and play on their own.', [
@@ -98,89 +117,129 @@ export function GroupSheet({ preset, index, onChange, onClose }: Props) {
         </View>
         <Text style={shared.title} numberOfLines={2}>{group.name}</Text>
         <ScrollView contentContainerStyle={styles.body}>
-          <Text style={shared.help}>Sounds in a group share these filters and drift. Tap a sound to add or take it out.</Text>
-          <View style={styles.members}>
-            {preset.sounds.map((s, i) => {
-              const at = groupOfSound(preset, i);
-              const member = at === index;
-              const elsewhere = at >= 0 && !member ? groups[at].name : null;
-              return (
-                <Pressable
-                  key={`${s.file ?? i}`}
-                  style={[styles.member, member && styles.memberOn]}
-                  onPress={() => onChange(setMember(preset, index, i, !member))}
-                  accessibilityRole="checkbox"
-                  accessibilityState={{ checked: member }}
-                >
-                  <Text style={[styles.memberText, member && styles.memberTextOn]} numberOfLines={1}>
-                    {member ? '✓ ' : ''}
-                    {s.name}
-                  </Text>
-                  {elsewhere && <Text style={styles.elsewhere} numberOfLines={1}>in {elsewhere}</Text>}
-                </Pressable>
-              );
-            })}
-            {preset.sounds.length === 0 && <Text style={shared.help}>This mix has no sounds yet.</Text>}
+          <View style={styles.card}>
+            <SliderRow
+              label="Group volume"
+              text={gainText(shown('gainDb', filterValue(group, 'gainDb')))}
+              value={filterValue(group, 'gainDb')}
+              min={FILTER_RANGES.gainDb.min}
+              max={FILTER_RANGES.gainDb.max}
+              step={0.5}
+              onChange={(v) => setDrag({ key: 'gainDb', value: v })}
+              onDone={(v) => done(setFilter(preset, index, 'gainDb', v))}
+            />
           </View>
 
-          <Text style={styles.section}>Filters</Text>
-          {FILTER_ROWS.map(({ field, label, text, step }) => {
-            const value = filterValue(group, field);
-            const r = FILTER_RANGES[field];
-            const toValue = (pos: number) => (isHz(field) ? positionToHz(field, pos) : pos);
-            const live = shown(field, value);
-            return (
-              <SliderRow
-                key={field}
-                label={label}
-                text={text(live)}
-                value={isHz(field) ? hzToPosition(field, value) : value}
-                min={isHz(field) ? 0 : r.min}
-                max={isHz(field) ? 1 : r.max}
-                step={isHz(field) ? 0 : step}
-                onChange={(v) => setDrag({ key: field, value: toValue(v) })}
-                onDone={(v) => done(setFilter(preset, index, field, toValue(v)))}
-              />
-            );
-          })}
-
-          <Text style={styles.section}>Drift</Text>
-          <Text style={shared.help}>Together: the whole group moves as one. Each sound: every sound wanders on its own, in this range.</Text>
-          {DRIFT_ROWS.map(({ axis, label, text, step }) => {
-            const a = driftAxis(group, axis);
-            const mode: DriftMode = !a.enabled ? 'off' : a.perSound ? 'each' : 'together';
-            const range = DRIFT_RANGES[axis];
-            const options: { value: DriftMode; label: string }[] =
-              axis === 'pitch'
-                ? [{ value: 'off', label: 'Off' }, { value: 'each', label: 'Each sound' }]
-                : [{ value: 'off', label: 'Off' }, { value: 'together', label: 'Together' }, { value: 'each', label: 'Each sound' }];
-            const pick = (m: DriftMode) =>
-              onChange(setDrift(preset, index, axis, m === 'off' ? { enabled: false } : { enabled: true, perSound: m === 'each' }));
-            return (
-              <View key={axis} style={styles.drift}>
-                <Text style={styles.label}>{label}</Text>
-                <Choice options={options} value={mode} onChange={pick} />
-                {mode !== 'off' &&
-                  (['min', 'max'] as const).map((end) => {
-                    const key = `${axis}.${end}`;
-                    const value = a[end] as number;
-                    return (
-                      <SliderRow
-                        key={end}
-                        label={end === 'min' ? 'Lowest' : 'Highest'}
-                        text={text(shown(key, value))}
-                        value={value}
-                        min={range.min}
-                        max={range.max}
-                        step={step}
-                        onChange={(v) => setDrag({ key, value: v })}
-                        onDone={(v) => done(setDrift(preset, index, axis, { [end]: v }))}
-                      />
-                    );
-                  })}
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Sounds in this group · {members.length}</Text>
+            {members.length === 0 && <Text style={shared.help}>No sounds yet. Add some below.</Text>}
+            {members.map((i) => (
+              <View key={`${preset.sounds[i].file ?? i}`} style={styles.member}>
+                <Text style={styles.memberText} numberOfLines={1}>{preset.sounds[i].name}</Text>
+                <Pressable
+                  onPress={() => onChange(setMember(preset, index, i, false))}
+                  hitSlop={10}
+                  accessibilityLabel={`Take ${preset.sounds[i].name} out`}
+                >
+                  <Text style={styles.remove}>Remove</Text>
+                </Pressable>
               </View>
-            );
-          })}
+            ))}
+            <Pressable style={shared.secondary} onPress={() => toggle('add')} accessibilityRole="button">
+              <Text style={shared.secondaryText}>{open === 'add' ? 'Close list' : '+ Add sounds'}</Text>
+            </Pressable>
+            {open === 'add' &&
+              others.map(({ i, at }) => (
+                <Pressable
+                  key={`${preset.sounds[i].file ?? i}`}
+                  style={styles.pick}
+                  onPress={() => onChange(setMember(preset, index, i, true))}
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.pickText} numberOfLines={1}>+ {preset.sounds[i].name}</Text>
+                  {at >= 0 && <Text style={styles.elsewhere} numberOfLines={1}>moves from {groups[at].name}</Text>}
+                </Pressable>
+              ))}
+            {open === 'add' && others.length === 0 && <Text style={shared.help}>Every sound in the mix is already here.</Text>}
+          </View>
+
+          <Pressable style={styles.fold} onPress={() => toggle('filters')} accessibilityRole="button" accessibilityState={{ expanded: open === 'filters' }}>
+            <View style={styles.foldText}>
+              <Text style={styles.cardTitle}>Filters</Text>
+              <Text style={styles.foldNote}>{filtersNote}</Text>
+            </View>
+            <Text style={styles.chevron}>{open === 'filters' ? '▾' : '▸'}</Text>
+          </Pressable>
+          {open === 'filters' && (
+            <View style={styles.card}>
+              {FILTER_ROWS.map(({ field, label, text, step }) => {
+                const value = filterValue(group, field);
+                const r = FILTER_RANGES[field];
+                const toValue = (pos: number) => (isHz(field) ? positionToHz(field, pos) : pos);
+                return (
+                  <SliderRow
+                    key={field}
+                    label={label}
+                    text={text(shown(field, value))}
+                    value={isHz(field) ? hzToPosition(field, value) : value}
+                    min={isHz(field) ? 0 : r.min}
+                    max={isHz(field) ? 1 : r.max}
+                    step={isHz(field) ? 0 : step}
+                    onChange={(v) => setDrag({ key: field, value: toValue(v) })}
+                    onDone={(v) => done(setFilter(preset, index, field, toValue(v)))}
+                  />
+                );
+              })}
+            </View>
+          )}
+
+          <Pressable style={styles.fold} onPress={() => toggle('drift')} accessibilityRole="button" accessibilityState={{ expanded: open === 'drift' }}>
+            <View style={styles.foldText}>
+              <Text style={styles.cardTitle}>Drift</Text>
+              <Text style={styles.foldNote}>{driftNote}</Text>
+            </View>
+            <Text style={styles.chevron}>{open === 'drift' ? '▾' : '▸'}</Text>
+          </Pressable>
+          {open === 'drift' && (
+            <View style={styles.card}>
+              <Text style={shared.help}>Together: the whole group moves as one. Each sound: every sound wanders on its own, in this range.</Text>
+              {DRIFT_ROWS.map(({ axis, label, text, step }) => {
+                const a = driftAxis(group, axis);
+                const mode = driftMode(group, axis);
+                const range = DRIFT_RANGES[axis];
+                const options: { value: DriftMode; label: string }[] =
+                  axis === 'pitch'
+                    ? [{ value: 'off', label: 'Off' }, { value: 'each', label: 'Each sound' }]
+                    : [{ value: 'off', label: 'Off' }, { value: 'together', label: 'Together' }, { value: 'each', label: 'Each sound' }];
+                const pick = (m: DriftMode) =>
+                  onChange(setDrift(preset, index, axis, m === 'off' ? { enabled: false } : { enabled: true, perSound: m === 'each' }));
+                return (
+                  <View key={axis} style={styles.drift}>
+                    <Text style={styles.label}>{label}</Text>
+                    <Choice options={options} value={mode} onChange={pick} />
+                    {mode !== 'off' &&
+                      (['min', 'max'] as const).map((end) => {
+                        const key = `${axis}.${end}`;
+                        const value = a[end] as number;
+                        return (
+                          <SliderRow
+                            key={end}
+                            label={end === 'min' ? 'Lowest' : 'Highest'}
+                            text={text(shown(key, value))}
+                            value={value}
+                            min={range.min}
+                            max={range.max}
+                            step={step}
+                            onChange={(v) => setDrag({ key, value: v })}
+                            onDone={(v) => done(setDrift(preset, index, axis, { [end]: v }))}
+                          />
+                        );
+                      })}
+                  </View>
+                );
+              })}
+            </View>
+          )}
         </ScrollView>
       </View>
       <TextPrompt
@@ -201,14 +260,19 @@ const styles = StyleSheet.create({
   actions: { flexDirection: 'row', gap: 20 },
   link: { color: colors.accent, fontSize: 16 },
   danger: { color: colors.danger, fontSize: 16 },
-  body: { gap: 14, paddingBottom: 32 },
-  members: { gap: 8 },
-  member: { backgroundColor: colors.card, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 14, flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
-  memberOn: { backgroundColor: colors.raised, borderColor: colors.accent, borderWidth: 1 },
-  memberText: { color: colors.dim, fontSize: 16, flexShrink: 1 },
-  memberTextOn: { color: colors.text },
-  elsewhere: { color: colors.faint, fontSize: 14 },
-  section: { color: colors.accent, fontSize: 18, fontWeight: '700', marginTop: 8 },
+  body: { gap: 12, paddingBottom: 32 },
+  card: { backgroundColor: colors.card, borderRadius: 14, borderColor: colors.raised, borderWidth: 1, padding: 14, gap: 12 },
+  cardTitle: { color: colors.accent, fontSize: 17, fontWeight: '700' },
+  member: { backgroundColor: colors.raised, borderRadius: 10, paddingVertical: 10, paddingHorizontal: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
+  memberText: { color: colors.text, fontSize: 16, flexShrink: 1 },
+  remove: { color: colors.danger, fontSize: 14 },
+  pick: { paddingVertical: 10, paddingHorizontal: 4, flexDirection: 'row', justifyContent: 'space-between', gap: 12, borderBottomColor: colors.raised, borderBottomWidth: 1 },
+  pickText: { color: colors.dim, fontSize: 16, flexShrink: 1 },
+  elsewhere: { color: colors.faint, fontSize: 13 },
+  fold: { backgroundColor: colors.card, borderRadius: 14, borderColor: colors.raised, borderWidth: 1, padding: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  foldText: { gap: 2 },
+  foldNote: { color: colors.faint, fontSize: 14 },
+  chevron: { color: colors.accent, fontSize: 20 },
   drift: { gap: 8 },
   label: { color: colors.text, fontSize: 16 },
 });
