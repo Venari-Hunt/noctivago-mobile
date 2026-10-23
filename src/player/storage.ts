@@ -122,14 +122,14 @@ export async function addLibrarySounds(preset: SavedPreset, sounds: LibrarySound
 }
 
 /** Adds a copy of sound `index` (its own audio file) at the end of the mix. */
-export function duplicateSound(preset: SavedPreset, index: number): SavedPreset {
+export async function duplicateSound(preset: SavedPreset, index: number): Promise<SavedPreset> {
   const pinned = withFiles(preset);
   const from = pinned.sounds[index];
   const dir = audioDir(pinned);
   const source = soundFile(from, index);
   const ext = source.includes('.') ? source.slice(source.lastIndexOf('.') + 1) : 'ogg';
   const file = audioFileName(`${from.name} copy`, ext, pinned.sounds.map((s, i) => soundFile(s, i)));
-  new File(dir, source).copy(new File(dir, file));
+  await new File(dir, source).copy(new File(dir, file));
   const next = duplicateSoundAt(pinned, index, file);
   savePreset(next);
   return next;
