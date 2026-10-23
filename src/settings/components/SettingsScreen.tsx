@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { BackHandler, Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { BackHandler, Linking, Pressable, Share, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { readErrorLog } from '../../errorLog';
 import { colors, shared } from '../../player/components/theme';
 import { presetLabel } from '../../player/domain/sleepTimer';
 import { Choice } from '../../ui/Choice';
@@ -9,6 +10,7 @@ import { AUTO_SLEEP_CHOICES, FADE_CHOICES, fadeLabel } from '../domain/settings'
 import { setSettings, useSettings } from '../store';
 
 const REPO = 'https://github.com/Venari-Hunt/noctivago-mobile';
+const DISCUSSIONS = 'https://github.com/Venari-Hunt/Noctivago/discussions';
 
 type Props = { update: UpdateState; onBack: () => void };
 
@@ -129,6 +131,12 @@ export function SettingsScreen({ update, onBack }: Props) {
 
         <Section title="About">
           <Link text="What's new" url={`${REPO}/blob/master/CHANGELOG.md`} />
+          <Link text="Send feedback or ideas" url={DISCUSSIONS} />
+          <Pressable onPress={() => Share.share({ message: `Noctívago ${update.label}
+${readErrorLog()}` }).catch(() => {})} accessibilityRole="button">
+            <Text style={styles.link}>Share the error log</Text>
+          </Pressable>
+          <Text style={shared.help}>The error log holds only error messages from this phone. Share it when something goes wrong so it can be fixed.</Text>
           <Link text="Source code and license (Apache 2.0)" url={REPO} />
           <Text style={shared.help}>Freesound sounds keep their author and license; you'll see them under each sound.</Text>
         </Section>

@@ -22,6 +22,17 @@ export function logError(where: string, e: unknown) {
   }
 }
 
+/** The saved log as text (newest last), or a note when there is none. */
+export function readErrorLog(): string {
+  try {
+    const f = file();
+    const text = f.exists ? f.textSync().trim() : '';
+    return text || 'No errors logged.';
+  } catch {
+    return 'Could not read the error log.';
+  }
+}
+
 /** Prints every saved line as `[errorlog] ...`, for `adb logcat`. */
 export function printErrorLog() {
   try {
