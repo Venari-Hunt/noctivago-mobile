@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.16.3 — 2026-10-23
+
+- **Solo.** ⋮ on a sound → **Solo**: only that sound plays (even if it was off) and every other card says "Silent (solo)". **Stop solo** in the same menu brings everything back as it was. Solo is not saved in the mix and ends when you leave it or add a sound.
+- Arrives over the air.
+
 ## 0.16.2 — 2026-10-23
 
 - **Sleep timer: stop at a time.** The Timer sheet has an **At a time…** chip: type 24 h time like 06:30 and playback fades out then (a time that already passed means tomorrow).

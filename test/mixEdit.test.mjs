@@ -149,3 +149,16 @@ test('duplicateSoundAt copies a sound with its settings and its own file', () =>
   assert.equal(next.sounds[1].file, '1.ogg');
   assert.equal(duplicateSoundAt(base, 9, 'x.opus'), base);
 });
+
+import { soloGain } from '../src/player/domain/mixEdit.ts';
+
+test('soloGain plays only the soloed sound, even one that is off', () => {
+  const [a, b] = [
+    { name: 'A', volume: 0.5, off: false },
+    { name: 'B', volume: 0.8, off: true },
+  ];
+  assert.equal(soloGain(a, 0, null), 0.5);
+  assert.equal(soloGain(b, 1, null), 0);
+  assert.equal(soloGain(a, 0, 1), 0);
+  assert.equal(soloGain(b, 1, 1), 0.8);
+});

@@ -156,6 +156,13 @@ export function playedVolume(sound: PhoneSound): number {
   return sound.off ? 0 : sound.volume;
 }
 
+/** The gain with Solo on (`solo` = the soloed sound's index, or null): that
+ * sound plays at its volume even if it is off, every other one is silent. */
+export function soloGain(sound: PhoneSound, index: number, solo: number | null): number {
+  if (solo === null) return playedVolume(sound);
+  return index === solo ? sound.volume : 0;
+}
+
 /** What a shared mix holds: its manifest, and which audio file each zip
  * entry comes from. Volumes and "off" are the phone's current ones. */
 export function shareManifest(preset: PhonePreset, nowIso: string): { manifest: Bag; audio: { zipName: string; file: string }[] } {

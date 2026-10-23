@@ -11,7 +11,7 @@ import { logError } from '../../errorLog';
 import { clockReport, type ClockSample } from '../domain/clockCheck';
 import { minutesUntilClock } from '../domain/sleepTimer';
 import { addGroup, groupChangeNote, groupOfSound, groupsOf, setMember } from '../domain/groupEdit';
-import { decodedMb, HEAVY_MIX_MB, playedVolume, renameSoundAt, setSoundOn, soundFile, uniqueName } from '../domain/mixEdit';
+import { decodedMb, HEAVY_MIX_MB, playedVolume, renameSoundAt, setSoundOn, soloGain, soundFile, uniqueName } from '../domain/mixEdit';
 import type { PlayerEngine } from '../engine';
 import { addLibrarySounds, duplicateSound, removeSound, savePreset, type SavedPreset } from '../storage';
 import { AddSoundsSheet } from './AddSoundsSheet';
@@ -60,6 +60,8 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
   const [groupSheet, setGroupSheet] = useState<number | null>(null);
   /** The sound whose play mode sheet is open. */
   const [modeSheet, setModeSheet] = useState<number | null>(null);
+  /** The soloed sound: only it plays, until Stop solo. Not saved in the mix. */
+  const [solo, setSolo] = useState<number | null>(null);
   /** A just-made group opens with its sound list already showing. */
   const [pickFirst, setPickFirst] = useState(false);
   /** The sound being renamed (its name dialog is open). */
@@ -161,6 +163,7 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
   // Copied into the mix, then playing right away (fading in) if the mix is.
   const addSounds = async (sounds: LibrarySound[]) => {
     setPicking(false);
+    stopSolo();
     setAdding('Adding sounds…');
     try {
       const before = preset.sounds.length;
@@ -180,6 +183,7 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
   // A copy with the same settings and its own audio file, added at the end.
   const duplicate = async (i: number) => {
     if (adding) return; // a second tap while one copy is still loading
+    stopSolo();
     setAdding('Duplicating…');
     try {
       const next = await duplicateSound(preset, i);
@@ -227,13 +231,28 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
 
   const toggleSound = (i: number) => {
     const next = setSoundOn(preset, i, !!preset.sounds[i].off);
-    engine.setSoundVolume(soundFile(next.sounds[i], i), playedVolume(next.sounds[i]));
+    engine.setSoundVolume(soundFile(next.sounds[i], i), soloGain(next.sounds[i], i, solo));
     save(next);
+  };
+
+  // Solo: every other sound goes silent, then comes back as it was.
+  const soundsAt = (on: number | null) =>
+    preset.sounds.forEach((s, j) => engine.setSoundVolume(soundFile(s, j), soloGain(s, j, on)));
+  const startSolo = (i: number) => {
+    setSolo(i);
+    soundsAt(i);
+    setNote(`Solo: ${preset.sounds[i].name}. Everything else is silent until you stop solo.`);
+  };
+  const stopSolo = () => {
+    if (solo === null) return;
+    setSolo(null);
+    soundsAt(null);
+    setNote(null);
   };
 
   const resetVolume = (i: number) => {
     const next = withSound(i, DEFAULT_VOLUME);
-    if (!next.sounds[i].off) engine.setSoundVolume(soundFile(next.sounds[i], i), DEFAULT_VOLUME);
+    if (!next.sounds[i].off || solo === i) engine.setSoundVolume(soundFile(next.sounds[i], i), soloGain(next.sounds[i], i, solo));
     save(next);
   };
 
@@ -313,10 +332,10 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
             label={s.name}
             value={s.volume}
             off={s.off}
-            note={soundNote(s.off ? 'Off' : MODE_NOTE[s.playMode] ?? `${Math.round(s.volume * 100)}%`, groups[groupOfSound(preset, i)]?.name)}
+            note={soundNote(solo !== null ? (solo === i ? 'Solo' : 'Silent (solo)') : s.off ? 'Off' : MODE_NOTE[s.playMode] ?? `${Math.round(s.volume * 100)}%`, groups[groupOfSound(preset, i)]?.name)}
             onToggle={() => toggleSound(i)}
             onChange={(v) => {
-              if (!s.off) engine.setSoundVolume(soundFile(s, i), v);
+              if (!s.off || solo === i) engine.setSoundVolume(soundFile(s, i), soloGain({ ...s, volume: v }, i, solo));
               update(withSound(i, v));
             }}
             onDone={(v) => save(withSound(i, v))}
@@ -394,6 +413,7 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
           soundMenu === null || !menuSound
             ? []
             : [
+                { label: solo === soundMenu ? 'Stop solo' : 'Solo', onPress: () => (solo === soundMenu ? stopSolo() : startSolo(soundMenu)) },
                 { label: menuSound.off ? 'Turn on' : 'Turn off', onPress: () => toggleSound(soundMenu) },
                 ...(menuSound.volume === DEFAULT_VOLUME
                   ? []
