@@ -4,7 +4,10 @@ import { BottomSheet } from '../../ui/BottomSheet';
 import { Choice } from '../../ui/Choice';
 import { SliderRow } from '../../ui/SliderRow';
 import { TextPrompt } from '../../ui/TextPrompt';
+import { FILTER_ROWS, gainText, isHz } from '../domain/filterRows';
+import { FILTER_RANGES, hzToPosition, positionToHz, type FilterField } from '../domain/groupEdit';
 import type { PlayMode } from '../domain/presetFile';
+import { activeSoundFilters, setSoundFilter, soundFilterValue } from '../domain/soundFilterEdit';
 import { clipTime, MIN_TRIM_SECONDS, setTrim, trimOf } from '../domain/trimEdit';
 import {
   addScheduleTime,
@@ -63,7 +66,7 @@ export function ShotSheet({ preset, index, onChange, onClose }: Props) {
   const [drag, setDrag] = useState<{ key: string; value: number } | null>(null);
   const [adding, setAdding] = useState(false);
   /** The "Each play" row that is open; one at a time keeps the sheet short. */
-  const [openAxis, setOpenAxis] = useState<PlayAxis | 'fade' | null>(null);
+  const [openAxis, setOpenAxis] = useState<PlayAxis | 'fade' | 'filters' | null>(null);
   const sound = index === null ? null : preset.sounds[index];
   if (index === null || !sound) return null;
 
@@ -234,6 +237,36 @@ export function ShotSheet({ preset, index, onChange, onClose }: Props) {
             })()}
           </>
         )}
+        <Text style={styles.section}>Filters</Text>
+        <View style={styles.fold}>
+          <Pressable style={styles.foldHead} onPress={() => setOpenAxis(openAxis === 'filters' ? null : 'filters')} accessibilityRole="button" accessibilityState={{ expanded: openAxis === 'filters' }}>
+            <Text style={styles.foldTitle}>High-pass, low-pass, gain, echo</Text>
+            <Text style={styles.foldNote}>{activeSoundFilters(preset, index) ? `${activeSoundFilters(preset, index)} on` : 'All off'}</Text>
+          </Pressable>
+          {openAxis === 'filters' && (
+            <>
+              <Text style={shared.small}>Applied live to this sound only. A sound the PC baked already has its filters in the audio.</Text>
+              {[...FILTER_ROWS.slice(0, 2), { field: 'gainDb' as FilterField, label: 'Gain', text: gainText, step: 0.5 }, ...FILTER_ROWS.slice(2)].map(({ field, label, text, step }) => {
+                const value = soundFilterValue(preset, index, field);
+                const r = FILTER_RANGES[field];
+                const toValue = (pos: number) => (isHz(field) ? positionToHz(field, pos) : pos);
+                return (
+                  <SliderRow
+                    key={field}
+                    label={label}
+                    text={text(shown(`filter-${field}`, value))}
+                    value={isHz(field) ? hzToPosition(field, shown(`filter-${field}`, value)) : shown(`filter-${field}`, value)}
+                    min={isHz(field) ? 0 : r.min}
+                    max={isHz(field) ? 1 : r.max}
+                    step={isHz(field) ? 0 : step}
+                    onChange={(v) => setDrag({ key: `filter-${field}`, value: toValue(v) })}
+                    onDone={(v) => apply(setSoundFilter(preset, index, field, toValue(v)))}
+                  />
+                );
+              })}
+            </>
+          )}
+        </View>
         {sound.durationSeconds ? (
           <>
             <Text style={styles.section}>Trim</Text>

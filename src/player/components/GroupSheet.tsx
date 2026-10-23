@@ -21,6 +21,7 @@ import {
   type FilterField,
   type Group,
 } from '../domain/groupEdit';
+import { FILTER_ROWS, gainText, isHz } from '../domain/filterRows';
 import type { SavedPreset } from '../storage';
 import { colors, shared } from './theme';
 
@@ -38,15 +39,6 @@ type Props = {
   onClose: () => void;
 };
 
-const hz = (v: number) => (v >= 1000 ? `${(v / 1000).toFixed(v % 1000 ? 1 : 0)} kHz` : `${v} Hz`);
-const FILTER_ROWS: { field: FilterField; label: string; text: (v: number) => string; step?: number }[] = [
-  { field: 'highpassHz', label: 'High-pass (cuts lows)', text: (v) => (v > 0 ? hz(v) : 'Off') },
-  { field: 'lowpassHz', label: 'Low-pass (cuts highs)', text: (v) => (v < 20000 ? hz(v) : 'Off') },
-  { field: 'echoDelayMs', label: 'Echo delay', text: (v) => (v > 0 ? `${v} ms` : 'Off'), step: 10 },
-  { field: 'echoDecay', label: 'Echo decay', text: (v) => (v > 0 ? v.toFixed(2) : 'Off'), step: 0.01 },
-];
-const isHz = (f: FilterField): f is 'highpassHz' | 'lowpassHz' => f === 'highpassHz' || f === 'lowpassHz';
-const gainText = (v: number) => (v === 0 ? '0 dB (as is)' : `${v > 0 ? '+' : ''}${v} dB`);
 
 const pan = (v: number) => (Math.abs(v) < 0.005 ? 'Center' : `${v < 0 ? 'L' : 'R'} ${Math.round(Math.abs(v) * 100)}%`);
 const DRIFT_ROWS: { axis: DriftAxisName; label: string; text: (v: number) => string; step: number }[] = [
