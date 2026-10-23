@@ -9,7 +9,7 @@ test('no saved file gives the defaults', () => {
 });
 
 test('saved values come back', () => {
-  const saved = { autoInstallUpdates: false, sleepFadeSeconds: 300, sleepAutoMinutes: 45, newSoundVolume: 0.4, browseSounds: false, community: false, showPlaybackCheck: true };
+  const saved = { autoInstallUpdates: false, sleepFadeSeconds: 300, sleepAutoMinutes: 45, newSoundVolume: 0.4, browseSounds: false, community: false, showPlaybackCheck: true, softLimiter: false };
   assert.deepEqual(parseSettings(saved), saved);
 });
 
@@ -31,4 +31,11 @@ test('the sleep fade length is the setting, halved for short timers', () => {
   assert.deepEqual(fadePlan(3600, 300), { fadeStart: 3300, end: 3600 });
   assert.deepEqual(fadePlan(3600), { fadeStart: 3570, end: 3600 });
   assert.deepEqual(fadePlan(100, 300), { fadeStart: 50, end: 100 });
+});
+
+test('the soft limiter is on unless turned off', () => {
+  assert.equal(DEFAULT_SETTINGS.softLimiter, true);
+  assert.equal(parseSettings({}).softLimiter, true);
+  assert.equal(parseSettings({ softLimiter: false }).softLimiter, false);
+  assert.equal(parseSettings({ softLimiter: 'off' }).softLimiter, true);
 });

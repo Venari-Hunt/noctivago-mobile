@@ -119,6 +119,9 @@ export class SoundDrift {
 }
 
 let clipCurve: Float32Array | null = null;
+// Passes everything through (the shaper is the same node with the limiter off,
+// so the level meter reads the same way).
+const straightCurve = new Float32Array([-CLIP_RANGE, 0, CLIP_RANGE]);
 
 /** A Sound Group or the whole mix: filters → gain (+ echo) → drift →
  * ceiling → out. Builds nothing it doesn't need. */
@@ -132,7 +135,7 @@ export class MixBus {
   private meter: AnalyserNode | null = null;
   private samples = new Float32Array(METER_SAMPLES);
 
-  constructor(ctx: AudioContext, spec: BusSpec | null, out: AudioNode, limit: boolean) {
+  constructor(ctx: AudioContext, spec: BusSpec | null, out: AudioNode, limit: boolean, soft = true) {
     this.ctx = ctx;
     const now = ctx.currentTime;
     this.input = ctx.createGain();
@@ -142,7 +145,7 @@ export class MixBus {
       const scale = ctx.createGain();
       scale.gain.value = 1 / CLIP_RANGE;
       const shaper = ctx.createWaveShaper();
-      shaper.curve = clipCurve ??= softClipCurve();
+      shaper.curve = soft ? (clipCurve ??= softClipCurve()) : straightCurve;
       // The meter sits in the chain (an analyser passes its input through), not on
       // a side branch: a branch ending in a silent gain silenced the whole mix.
       const meter = ctx.createAnalyser();
