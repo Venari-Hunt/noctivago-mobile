@@ -81,6 +81,15 @@ export function SettingsScreen({ update, onBack }: Props) {
           />
         </Section>
 
+        <Section title="Sound">
+          <Toggle
+            label="Soft limiter"
+            help="Bends peaks past -1 dB so the mix never clips, but a loud sound (thunder) then squashes everything under it. Turn it off to hear the mix as is, and watch the level strip. Applies the next time you open a mix."
+            value={s.softLimiter}
+            onChange={(v) => setSettings({ softLimiter: v })}
+          />
+        </Section>
+
         <Section title="New sounds">
           <SliderRow
             label="Volume when added to a mix"

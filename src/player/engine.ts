@@ -7,6 +7,7 @@ import {
   type ConstantSourceNode,
   type GainNode,
 } from 'react-native-audio-api';
+import { getSettings } from '../settings/store';
 import { playedVolume, soundFile } from './domain/mixEdit';
 import { groupBusSpecs, groupIndexOf, loopFade, shotSettings, soundFilterSpec, soundFluctuation, wholeMixFadeIn, wholeMixSpec } from './domain/mixPlan';
 import { syncShot } from './domain/shotPlan';
@@ -70,6 +71,8 @@ export class PlayerEngine {
   /** How far ahead the Fluctuation walks are booked. */
   private driftUntil = 0;
   private masterVolume = 0.8;
+  /** The Settings choice, read when the mix loads. */
+  private softLimiter = true;
   private subs: { remove(): void }[] = [];
   private title = '';
   /** Silent node whose end event suspends the context after a pause fade. */
@@ -110,7 +113,8 @@ export class PlayerEngine {
     this.sleepGain = sleepGain;
     const { manifest } = preset;
     this.fadeIn = wholeMixFadeIn(manifest);
-    const wholeMix = new MixBus(ctx, wholeMixSpec(manifest), master, true);
+    this.softLimiter = getSettings().softLimiter;
+    const wholeMix = new MixBus(ctx, wholeMixSpec(manifest), master, true, this.softLimiter);
     this.buses = [wholeMix];
     this.addDrifts(wholeMix.drifts);
     this.routes = { wholeMix, groups: [], keys: [] };
@@ -204,7 +208,7 @@ export class PlayerEngine {
       if (!spec) return null;
       const hit = pool.findIndex((p) => p.key === keys[g]);
       if (hit >= 0) return pool.splice(hit, 1)[0].bus;
-      const bus = new MixBus(ctx, spec, routes.wholeMix.input, true);
+      const bus = new MixBus(ctx, spec, routes.wholeMix.input, true, this.softLimiter);
       this.buses.push(bus);
       this.addDrifts(bus.drifts);
       return bus;

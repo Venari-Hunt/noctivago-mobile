@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.19.2 — 2026-10-23
+
+- **Soft limiter switch.** Settings → Sound → Soft limiter (on by default). The phone has no compressor, so its stand-in bends any peak past -1 dB, which distorts and squashes the mix under loud sounds like thunder. Turn it off to hear the mix as is and watch the level strip; applies the next time you open a mix. With it off, anything past 0 dB clips at the phone's output, so lower sounds if the strip goes red.
+- Arrives over the air.
+
 ## 0.19.1 — 2026-10-23
 
 - **Fix: the level meter in 0.19.0 silenced the whole mix.** It hung off the limiter on a side branch ending in a silent gain; the audio library lets that branch zero the main signal. The meter now sits inside the chain (an analyser passes audio through). Measured on the phone with a recording of the app's own output: 0.16.4 -41.5 dB, the broken 0.19.0 -91 dB (silence), this build -41.0 dB. The level strip shows the mix level (a tick marks -1 dB), a clip notice, and **Lower all sounds N dB**.

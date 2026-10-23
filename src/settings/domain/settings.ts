@@ -15,6 +15,8 @@ export type AppSettings = {
   community: boolean;
   /** The player's "Audio kept running… · battery" line, for overnight tests. */
   showPlaybackCheck: boolean;
+  /** The soft limiter that bends peaks past -1 dB. Off passes the mix as is (the phone's output clips at 0 dB). Read when a mix opens. */
+  softLimiter: boolean;
 };
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -25,6 +27,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   browseSounds: true,
   community: true,
   showPlaybackCheck: false,
+  softLimiter: true,
 };
 
 export const FADE_CHOICES = [10, 30, 60, 300];
@@ -52,5 +55,6 @@ export function parseSettings(raw: unknown): AppSettings {
     browseSounds: bool('browseSounds'),
     community: bool('community'),
     showPlaybackCheck: bool('showPlaybackCheck'),
+    softLimiter: bool('softLimiter'),
   };
 }
