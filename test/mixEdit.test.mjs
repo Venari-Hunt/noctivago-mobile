@@ -4,6 +4,7 @@ import {
   appendSound,
   audioFileName,
   decodedMb,
+  duplicateSoundAt,
   soundsSummary,
   emptyManifest,
   playedVolume,
@@ -135,4 +136,16 @@ test('a mix card lists its first sounds that are on', () => {
   assert.equal(soundsSummary([s('Rain'), s('Fire', true), s('Wind')]), 'Rain · Wind');
   assert.equal(soundsSummary([s('A'), s('B'), s('C'), s('D'), s('E')]), 'A · B · C +2');
   assert.equal(soundsSummary([s('A', true)]), '1 sound, all off');
+});
+
+test('duplicateSoundAt copies a sound with its settings and its own file', () => {
+  const base = imported();
+  const next = duplicateSoundAt(base, 1, 'Gull copy.opus');
+  assert.equal(next.sounds.length, 4);
+  assert.equal(next.sounds[3].name, 'Gull copy');
+  assert.equal(next.sounds[3].file, 'Gull copy.opus');
+  assert.equal(next.sounds[3].volume, 0.4);
+  assert.equal(next.sounds[3].playMode, 'scatter');
+  assert.equal(next.sounds[1].file, '1.ogg');
+  assert.equal(duplicateSoundAt(base, 9, 'x.opus'), base);
 });
