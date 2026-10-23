@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Choice } from '../../ui/Choice';
 import { SliderRow } from '../../ui/SliderRow';
@@ -31,6 +31,8 @@ type Props = {
   preset: SavedPreset;
   /** The group shown; null hides the sheet. */
   index: number | null;
+  /** Open with the "+ Add sounds" list showing (a group just made). */
+  startWithSounds?: boolean;
   /** Every edit, already applied: save it and play it. */
   onChange: (next: SavedPreset) => void;
   onClose: () => void;
@@ -61,10 +63,13 @@ function driftMode(group: Group, axis: DriftAxisName): DriftMode {
   return !a.enabled ? 'off' : a.perSound ? 'each' : 'together';
 }
 
-export function GroupSheet({ preset, index, onChange, onClose }: Props) {
+export function GroupSheet({ preset, index, startWithSounds, onChange, onClose }: Props) {
   const [renaming, setRenaming] = useState(false);
   /** The folded card that is open; one at a time keeps the screen short. */
   const [open, setOpen] = useState<Fold | null>(null);
+  useEffect(() => {
+    if (index !== null && startWithSounds) setOpen('add');
+  }, [index, startWithSounds]);
   /** The slider being dragged and its value, shown before it's saved. */
   const [drag, setDrag] = useState<{ key: string; value: number } | null>(null);
   const groups = groupsOf(preset);

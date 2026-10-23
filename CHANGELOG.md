@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.15.7 — 2026-10-23
+
+- **Sound Groups tell you what happened.** A short message shows when a group is created or deleted, and when a sound joins or leaves one.
+- **A new group opens with its sound list ready**, so making a group and filling it is two steps, not four.
+- Arrives over the air.
+
 ## 0.15.6 — 2026-10-22
 
 - **Rename a sound in a mix.** Tap ⋮ (or hold the name) on a sound and pick Rename… The new name applies to this mix only; the sound in your library keeps its name.

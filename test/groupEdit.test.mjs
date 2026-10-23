@@ -5,6 +5,7 @@ import {
   deleteGroup,
   driftAxis,
   filterValue,
+  groupChangeNote,
   groupOfSound,
   groupsOf,
   hzToPosition,
@@ -103,4 +104,14 @@ test('sharing drops empty groups and keeps the rest', () => {
   const p = addGroup(addGroup(mix(), 'Empty'), 'Full', 1);
   const { manifest } = shareManifest(p, '2026-10-19T00:00:00Z');
   assert.deepEqual(manifest.groups.map((g) => [g.name, g.soundIndexes]), [['Full', [1]]]);
+});
+
+test('groupChangeNote says what changed in the groups', () => {
+  const a = addGroup(mix(), 'Night');
+  assert.equal(groupChangeNote(mix(), a), 'Group "Night" created.');
+  const b = setMember(a, 0, 1, true);
+  assert.equal(groupChangeNote(a, b), 'Owl is now in "Night".');
+  assert.equal(groupChangeNote(b, setMember(b, 0, 1, false)), 'Owl left "Night".');
+  assert.equal(groupChangeNote(b, deleteGroup(b, 0)), 'Group "Night" deleted. Its sounds play on their own.');
+  assert.equal(groupChangeNote(b, renameGroup(b, 0, 'Dusk')), null);
 });
