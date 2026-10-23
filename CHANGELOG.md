@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.19.3 — 2026-10-23
+
+- **Easier to see.** The on/off switches in Settings are now clear in both states (grey track with a light thumb when off, yellow track with a white thumb when on; the on thumb used to be black on black). The empty part of every slider and the round on/off button on a sound when it is off are lighter too.
+- Arrives over the air.
+
 ## 0.19.2 — 2026-10-23
 
 - **Soft limiter switch.** Settings → Sound → Soft limiter (on by default). The phone has no compressor, so its stand-in bends any peak past -1 dB, which distorts and squashes the mix under loud sounds like thunder. Turn it off to hear the mix as is and watch the level strip; applies the next time you open a mix. With it off, anything past 0 dB clips at the phone's output, so lower sounds if the strip goes red.
