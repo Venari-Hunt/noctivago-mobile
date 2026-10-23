@@ -17,7 +17,6 @@ import type { PlayerEngine } from '../engine';
 import { addLibrarySounds, duplicateSound, removeSound, savePreset, type SavedPreset } from '../storage';
 import { AddSoundsSheet } from './AddSoundsSheet';
 import { GroupChips } from './GroupChips';
-import { LevelStrip } from './LevelStrip';
 import { GroupSheet } from './GroupSheet';
 import { ShotSheet } from './ShotSheet';
 import { PresetMenu } from './PresetMenu';
@@ -326,7 +325,7 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
         {error && <Text style={shared.error}>{error}</Text>}
         {note && <Text style={styles.note}>{note}</Text>}
       </View>
-      <LevelStrip engine={engine} playing={playing} groupNames={groups.map((g) => g.name)} onLower={lowerAll} />
+      {/* The level strip is held back until its audio meter is proven on the phone (0.19.0 was followed by a silent mix). */}
       <ScrollView style={styles.scroll} contentContainerStyle={styles.sounds}>
         {empty ? (
           <Text style={shared.help}>
