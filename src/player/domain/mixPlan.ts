@@ -77,6 +77,13 @@ export function shotSettings(manifest: Bag, index: number, mode: 'scatter' | 'sc
   return applyGroupShotOverride(own, groupFluctuation(manifest, index)) ?? {};
 }
 
+/** A sound's own filters (settings.filters); null when none are on. A desktop
+ * phone export bakes them into the clip and leaves this empty. */
+export function soundFilterSpec(manifest: Bag, index: number): BusSpec | null {
+  const f = settingsOf(manifest, index).filters;
+  return busSpec(f && typeof f === 'object' ? (f as Bag) : null, {});
+}
+
 export function groupBusSpecs(manifest: Bag): (BusSpec | null)[] {
   return groups(manifest).map((g) => busSpec(g.filters, busFluctuation(g.filters?.fluctuation ?? null) ?? {}));
 }

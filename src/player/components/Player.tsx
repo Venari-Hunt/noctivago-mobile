@@ -418,7 +418,7 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
                 ...(menuSound.volume === DEFAULT_VOLUME
                   ? []
                   : [{ label: 'Reset volume', onPress: () => resetVolume(soundMenu) }]),
-                { label: 'Play mode & trim…', onPress: () => setModeSheet(soundMenu) },
+                { label: 'Sound settings…', onPress: () => setModeSheet(soundMenu) },
                 { label: 'Rename…', onPress: () => setRenaming(soundMenu) },
                 { label: 'Duplicate', onPress: () => duplicate(soundMenu) },
                 ...groupMenu(soundMenu),

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.18.0 — 2026-10-23
+
+- **Filters per sound.** The sound menu's **Play mode & trim…** is now **Sound settings…** and has a **Filters** section: high-pass, low-pass, gain and echo for that sound alone, live, with the same ranges as the PC's Remix and Sound Groups. Sounds baked by the PC already carry their filters in the audio, so those start with everything off.
+- Arrives over the air.
+
 ## 0.17.0 — 2026-10-23
 
 - **Trim a sound.** ⋮ on a sound → **Play mode & trim…** has a new **Trim** section: set where the clip starts and ends (tenths of a second). The sound restarts with the cut; the original file is untouched. Same fields as the PC's Remix (`loopStart` / `loopEnd`), so a shared mix keeps the trim on the PC. Clips baked by the PC play whole, as before.

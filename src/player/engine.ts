@@ -8,7 +8,7 @@ import {
   type GainNode,
 } from 'react-native-audio-api';
 import { playedVolume, soundFile } from './domain/mixEdit';
-import { groupBusSpecs, groupIndexOf, loopFade, shotSettings, soundFluctuation, wholeMixFadeIn, wholeMixSpec } from './domain/mixPlan';
+import { groupBusSpecs, groupIndexOf, loopFade, shotSettings, soundFilterSpec, soundFluctuation, wholeMixFadeIn, wholeMixSpec } from './domain/mixPlan';
 import { syncShot } from './domain/shotPlan';
 import { fadePlan } from './domain/sleepTimer';
 import { MixBus, SoundDrift, type ParamDrift } from './mixGraph';
@@ -48,6 +48,8 @@ type Voice = {
   source?: AudioBufferSourceNode;
   shots?: ShotVoice;
   drift?: SoundDrift;
+  /** Its own filters (high-pass, low-pass, gain, echo) between its source and gain. */
+  filterBus?: MixBus;
 };
 /** keys[g]: the spec group g's bus was built from, as JSON. */
 type Routes = { wholeMix: MixBus; groups: (MixBus | null)[]; keys: string[] };
@@ -164,10 +166,14 @@ export class PlayerEngine {
     const { manifest } = preset;
     const { bus, own } = this.routeOf(preset, index);
     gain.connect(bus.input);
+    // Its own filters sit right after the source, so group routing never sees them.
+    const spec = soundFilterSpec(manifest, index);
+    const filterBus = spec ? new MixBus(ctx, spec, gain, false) : undefined;
+    const feed = filterBus?.input ?? gain;
     if (sound.playMode !== 'loop') {
-      const shots = new ShotVoice(ctx, buffer, gain, sound.playMode, shotSettings(manifest, index, sound.playMode));
+      const shots = new ShotVoice(ctx, buffer, feed, sound.playMode, shotSettings(manifest, index, sound.playMode));
       shots.sync = (voice, at) => this.syncGroup(voice, at);
-      return { gain, buffer, bus, own, shots };
+      return { gain, buffer, bus, own, shots, filterBus };
     }
     if (!source) {
       source = ctx.createBufferSource();
@@ -175,9 +181,9 @@ export class PlayerEngine {
       source.loop = true;
       source.start();
     }
-    const drift = new SoundDrift(ctx, source.detune, soundFluctuation(manifest, index), gain);
+    const drift = new SoundDrift(ctx, source.detune, soundFluctuation(manifest, index), feed);
     source.connect(drift.input);
-    return { gain, buffer, bus, own, source, drift };
+    return { gain, buffer, bus, own, source, drift, filterBus };
   }
 
   /** Adds sound `index` of the edited mix while loaded, playing or not. */
@@ -240,6 +246,7 @@ export class PlayerEngine {
     for (const [i, voice] of this.movedVoices(preset)) {
       this.dropDrifts(voice.drift?.drifts ?? []);
       voice.drift?.dispose();
+      voice.filterBus?.dispose();
       voice.shots?.dispose();
       voice.gain.disconnect();
       voice.source?.disconnect();
@@ -288,6 +295,7 @@ export class PlayerEngine {
       voice.source?.stop();
       voice.shots?.dispose();
       voice.drift?.dispose();
+      voice.filterBus?.dispose();
       voice.gain.disconnect();
     };
     if (!this.playing) return free();
@@ -519,6 +527,7 @@ export class PlayerEngine {
       v.source?.stop();
       v.shots?.dispose();
       v.drift?.dispose();
+      v.filterBus?.dispose();
     });
     this.voices.clear();
     this.buses.forEach((b) => b.dispose());
