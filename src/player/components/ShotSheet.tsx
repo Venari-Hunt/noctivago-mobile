@@ -7,13 +7,23 @@ import { TextPrompt } from '../../ui/TextPrompt';
 import type { PlayMode } from '../domain/presetFile';
 import {
   addScheduleTime,
+  axisValueText,
   durationText,
+  fadeMs,
+  MAX_FADE_MS,
+  PLAY_AXES,
+  perPlay,
+  perPlayText,
   removeScheduleTime,
   scatterGap,
   scheduleOf,
   setPlayMode,
+  setFadeMs,
+  setPerPlay,
   setScatterGap,
   setSchedule,
+  type PlayAxis,
+  type ShotMode,
 } from '../domain/shotEdit';
 import type { SavedPreset } from '../storage';
 import { colors, shared } from './theme';
@@ -36,6 +46,13 @@ const MODES: { value: PlayMode; label: string }[] = [
   { value: 'scheduled', label: 'Scheduled' },
 ];
 
+const AXIS_ROWS: { axis: PlayAxis; label: string }[] = [
+  { axis: 'volume', label: 'Volume' },
+  { axis: 'pitch', label: 'Pitch' },
+  { axis: 'pan', label: 'Pan' },
+  { axis: 'speed', label: 'Speed' },
+];
+
 const MAX_GAP = 3600;
 // Gaps run from seconds to an hour, so the slider is logarithmic.
 const gapToPosition = (s: number) => Math.log(Math.max(1, Math.min(MAX_GAP, s))) / Math.log(MAX_GAP);
@@ -44,6 +61,8 @@ const positionToGap = (p: number) => Math.round(Math.exp(p * Math.log(MAX_GAP)))
 export function ShotSheet({ preset, index, onChange, onClose }: Props) {
   const [drag, setDrag] = useState<{ key: string; value: number } | null>(null);
   const [adding, setAdding] = useState(false);
+  /** The "Each play" row that is open; one at a time keeps the sheet short. */
+  const [openAxis, setOpenAxis] = useState<PlayAxis | 'fade' | null>(null);
   const sound = index === null ? null : preset.sounds[index];
   if (index === null || !sound) return null;
 
@@ -57,7 +76,7 @@ export function ShotSheet({ preset, index, onChange, onClose }: Props) {
 
   return (
     <BottomSheet title={sound.name} visible onClose={onClose}>
-      <ScrollView contentContainerStyle={styles.body}>
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.body}>
         <Choice options={MODES} value={sound.playMode} onChange={(m) => m !== sound.playMode && apply(setPlayMode(preset, index, m))} big />
 
         {sound.playMode === 'loop' && <Text style={shared.help}>Plays all the time, looping without a gap.</Text>}
@@ -136,6 +155,84 @@ export function ShotSheet({ preset, index, onChange, onClose }: Props) {
             )}
           </>
         )}
+        {sound.playMode !== 'loop' && (
+          <>
+            <Text style={styles.section}>Each play</Text>
+            {AXIS_ROWS.map(({ axis, label }) => {
+              const mode = sound.playMode as ShotMode;
+              const v = perPlay(preset, index, mode, axis);
+              const a = PLAY_AXES[axis];
+              const open = openAxis === axis;
+              const lo = shown(`${axis}-min`, v.min);
+              const hi = shown(`${axis}-max`, v.max);
+              return (
+                <View key={axis} style={styles.fold}>
+                  <Pressable style={styles.foldHead} onPress={() => setOpenAxis(open ? null : axis)} accessibilityRole="button" accessibilityState={{ expanded: open }}>
+                    <Text style={styles.foldTitle}>{label}</Text>
+                    <Text style={styles.foldNote}>{perPlayText(axis, v)}</Text>
+                  </Pressable>
+                  {open && (
+                    <>
+                      <Choice
+                        options={[
+                          { value: 'range', label: 'Pick the range' },
+                          { value: 'random', label: 'Fully random' },
+                        ]}
+                        value={v.fullyRandom ? 'random' : 'range'}
+                        onChange={(c) => apply(setPerPlay(preset, index, mode, axis, { fullyRandom: c === 'random' }))}
+                      />
+                      {!v.fullyRandom && (
+                        <>
+                          <SliderRow
+                            label="Lowest"
+                            value={lo}
+                            min={a.min}
+                            max={a.max}
+                            step={a.step}
+                            text={axisValueText(axis, lo)}
+                            onChange={(x) => setDrag({ key: `${axis}-min`, value: x })}
+                            onDone={(x) => apply(setPerPlay(preset, index, mode, axis, { min: x }))}
+                          />
+                          <SliderRow
+                            label="Highest"
+                            value={hi}
+                            min={a.min}
+                            max={a.max}
+                            step={a.step}
+                            text={axisValueText(axis, hi)}
+                            onChange={(x) => setDrag({ key: `${axis}-max`, value: x })}
+                            onDone={(x) => apply(setPerPlay(preset, index, mode, axis, { max: x }))}
+                          />
+                        </>
+                      )}
+                    </>
+                  )}
+                </View>
+              );
+            })}
+            {(() => {
+              const mode = sound.playMode as ShotMode;
+              const f = fadeMs(preset, index, mode);
+              const open = openAxis === 'fade';
+              const fin = shown('fade-in', f.inMs);
+              const fout = shown('fade-out', f.outMs);
+              return (
+                <View style={styles.fold}>
+                  <Pressable style={styles.foldHead} onPress={() => setOpenAxis(open ? null : 'fade')} accessibilityRole="button" accessibilityState={{ expanded: open }}>
+                    <Text style={styles.foldTitle}>Fade</Text>
+                    <Text style={styles.foldNote}>{f.inMs || f.outMs ? `in ${f.inMs} ms, out ${f.outMs} ms` : 'None'}</Text>
+                  </Pressable>
+                  {open && (
+                    <>
+                      <SliderRow label="Fade in" value={fin} min={0} max={MAX_FADE_MS} step={50} text={`${Math.round(fin)} ms`} onChange={(x) => setDrag({ key: 'fade-in', value: x })} onDone={(x) => apply(setFadeMs(preset, index, mode, { inMs: x }))} />
+                      <SliderRow label="Fade out" value={fout} min={0} max={MAX_FADE_MS} step={50} text={`${Math.round(fout)} ms`} onChange={(x) => setDrag({ key: 'fade-out', value: x })} onDone={(x) => apply(setFadeMs(preset, index, mode, { outMs: x }))} />
+                    </>
+                  )}
+                </View>
+              );
+            })()}
+          </>
+        )}
       </ScrollView>
       <TextPrompt
         title={adding ? 'Add a time (24 h, like 18:30)' : null}
@@ -155,6 +252,12 @@ export function ShotSheet({ preset, index, onChange, onClose }: Props) {
 }
 
 const styles = StyleSheet.create({
+  scroll: { maxHeight: 520 },
+  section: { color: colors.faint, fontSize: 13, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase', marginTop: 4 },
+  fold: { backgroundColor: colors.card, borderRadius: 12, padding: 14, gap: 12 },
+  foldHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
+  foldTitle: { color: colors.text, fontSize: 16, fontWeight: '600' },
+  foldNote: { color: colors.faint, fontSize: 14, flexShrink: 1, textAlign: 'right' },
   body: { gap: 16, paddingBottom: 8 },
   timeRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: colors.card, borderRadius: 12, padding: 14 },
   time: { color: colors.text, fontSize: 18, fontWeight: '600' },

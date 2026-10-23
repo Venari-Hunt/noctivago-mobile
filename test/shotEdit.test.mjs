@@ -78,3 +78,36 @@ test('durationText reads naturally', () => {
   assert.equal(durationText(7200), '2 h');
   assert.equal(durationText(9000), '2 h 30 min');
 });
+
+import { fadeMs, perPlay, perPlayText, setFadeMs, setPerPlay } from '../src/player/domain/shotEdit.ts';
+
+test('per-play axes default to neutral, clamp, and are read by the shot engine', () => {
+  const base = setPlayMode(mix(), 0, 'scatter');
+  assert.deepEqual(perPlay(base, 0, 'scatter', 'volume'), { min: 1, max: 1, fullyRandom: false });
+  assert.deepEqual(perPlay(base, 0, 'scatter', 'pitch'), { min: 0, max: 0, fullyRandom: false });
+  const next = setPerPlay(base, 0, 'scatter', 'pitch', { min: -3, max: 2 });
+  const cfg = shotSettings(next.manifest, 0, 'scatter');
+  assert.equal(cfg.minPitchSemitones, -3);
+  assert.equal(cfg.maxPitchSemitones, 2);
+  // Out of range and crossed bounds are fixed.
+  assert.deepEqual(perPlay(setPerPlay(base, 0, 'scatter', 'pitch', { min: -40, max: 99 }), 0, 'scatter', 'pitch'), { min: -12, max: 12, fullyRandom: false });
+  assert.equal(perPlay(setPerPlay(next, 0, 'scatter', 'pitch', { min: 5 }), 0, 'scatter', 'pitch').max, 5);
+  assert.equal(perPlay(setPerPlay(base, 0, 'scatter', 'speed', { min: 0.1 }), 0, 'scatter', 'speed').min, 0.5);
+});
+
+test('per-play settings go to schedule for a Scheduled sound and keep the gap settings', () => {
+  let m = setScatterGap(setPlayMode(mix(), 1, 'scheduled'), 1, { min: 7, max: 9 });
+  m = setPerPlay(m, 1, 'scheduled', 'pan', { min: -0.5, max: 0.5 });
+  assert.equal(shotSettings(m.manifest, 1, 'scheduled').minPan, -0.5);
+  assert.equal(shotSettings(m.manifest, 1, 'scatter').minGapSeconds, 7);
+  assert.equal(perPlayText('pan', perPlay(m, 1, 'scheduled', 'pan')), 'L 50% to R 50%');
+  assert.equal(perPlayText('volume', perPlay(m, 1, 'scheduled', 'volume')), 'Same every time');
+  assert.equal(perPlayText('volume', { min: 0.4, max: 1, fullyRandom: false }), '40% to 100%');
+  assert.equal(perPlayText('pitch', { min: 0, max: 0, fullyRandom: true }), 'Fully random');
+});
+
+test('fades are stored in milliseconds, clamped', () => {
+  const m = setFadeMs(setPlayMode(mix(), 0, 'scatter'), 0, 'scatter', { inMs: 800, outMs: 99999 });
+  assert.deepEqual(fadeMs(m, 0, 'scatter'), { inMs: 800, outMs: 5000 });
+  assert.equal(shotSettings(m.manifest, 0, 'scatter').fadeInMs, 800);
+});

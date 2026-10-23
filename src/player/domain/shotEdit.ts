@@ -116,3 +116,71 @@ export function durationText(seconds: number): string {
   const h = Math.floor(m / 60);
   return m % 60 ? `${h} h ${m % 60} min` : `${h} h`;
 }
+
+// What each play of a Random Interval or Scheduled sound varies: the same
+// four axes and bounds as the desktop Remix, stored on whichever of
+// `scatter` / `schedule` the sound uses (shotRules.js reads both alike).
+export type ShotMode = 'scatter' | 'scheduled';
+export type PlayAxis = 'volume' | 'pitch' | 'pan' | 'speed';
+export type PerPlay = { min: number; max: number; fullyRandom: boolean };
+
+export const PLAY_AXES: Record<PlayAxis, { min: number; max: number; neutral: number; step: number; keys: [string, string, string] }> = {
+  volume: { min: 0, max: 1, neutral: 1, step: 0.01, keys: ['minVolume', 'maxVolume', 'volumeFullyRandom'] },
+  pitch: { min: -12, max: 12, neutral: 0, step: 1, keys: ['minPitchSemitones', 'maxPitchSemitones', 'pitchFullyRandom'] },
+  pan: { min: -1, max: 1, neutral: 0, step: 0.05, keys: ['minPan', 'maxPan', 'panFullyRandom'] },
+  speed: { min: 0.5, max: 2, neutral: 1, step: 0.05, keys: ['minSpeed', 'maxSpeed', 'speedFullyRandom'] },
+};
+
+export const MAX_FADE_MS = 5000;
+
+const configKey = (mode: ShotMode) => (mode === 'scatter' ? 'scatter' : 'schedule');
+const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+
+export function perPlay(preset: PhonePreset, index: number, mode: ShotMode, axis: PlayAxis): PerPlay {
+  const a = PLAY_AXES[axis];
+  const c = objectAt(preset, index, configKey(mode));
+  const min = clamp(num(c[a.keys[0]], a.neutral), a.min, a.max);
+  return { min, max: clamp(Math.max(min, num(c[a.keys[1]], a.neutral)), a.min, a.max), fullyRandom: Boolean(c[a.keys[2]]) };
+}
+
+/** Sets one axis; the max never drops below the min, both stay in range. */
+export function setPerPlay<T extends PhonePreset>(preset: T, index: number, mode: ShotMode, axis: PlayAxis, patch: Partial<PerPlay>): T {
+  const a = PLAY_AXES[axis];
+  const now = perPlay(preset, index, mode, axis);
+  const min = clamp(patch.min ?? now.min, a.min, a.max);
+  const max = clamp(Math.max(min, patch.max ?? now.max), a.min, a.max);
+  const key = configKey(mode);
+  const next = { ...objectAt(preset, index, key), [a.keys[0]]: min, [a.keys[1]]: max, [a.keys[2]]: patch.fullyRandom ?? now.fullyRandom };
+  return withSettings(preset, index, { [key]: next });
+}
+
+export function fadeMs(preset: PhonePreset, index: number, mode: ShotMode): { inMs: number; outMs: number } {
+  const c = objectAt(preset, index, configKey(mode));
+  return { inMs: clamp(num(c.fadeInMs, 0), 0, MAX_FADE_MS), outMs: clamp(num(c.fadeOutMs, 0), 0, MAX_FADE_MS) };
+}
+
+export function setFadeMs<T extends PhonePreset>(preset: T, index: number, mode: ShotMode, patch: { inMs?: number; outMs?: number }): T {
+  const now = fadeMs(preset, index, mode);
+  const key = configKey(mode);
+  const next = {
+    ...objectAt(preset, index, key),
+    fadeInMs: clamp(patch.inMs ?? now.inMs, 0, MAX_FADE_MS),
+    fadeOutMs: clamp(patch.outMs ?? now.outMs, 0, MAX_FADE_MS),
+  };
+  return withSettings(preset, index, { [key]: next });
+}
+
+/** A short summary of an axis for a folded row: "Same every time" or its range. */
+export function perPlayText(axis: PlayAxis, v: PerPlay): string {
+  const a = PLAY_AXES[axis];
+  if (v.fullyRandom) return 'Fully random';
+  if (v.min === a.neutral && v.max === a.neutral) return 'Same every time';
+  return `${axisValueText(axis, v.min)} to ${axisValueText(axis, v.max)}`;
+}
+
+export function axisValueText(axis: PlayAxis, value: number): string {
+  if (axis === 'volume') return `${Math.round(value * 100)}%`;
+  if (axis === 'speed') return `${Math.round(value * 100)}%`;
+  if (axis === 'pitch') return `${value > 0 ? '+' : ''}${value} st`;
+  return Math.abs(value) < 0.005 ? 'Center' : `${value < 0 ? 'L' : 'R'} ${Math.round(Math.abs(value) * 100)}%`;
+}
