@@ -22,3 +22,15 @@ test('timer button says Timer while off, else the time left', () => {
   assert.equal(timerButtonLabel(null), 'Timer');
   assert.equal(timerButtonLabel(1781000), '29:41');
 });
+
+import { minutesUntilClock } from '../src/player/domain/sleepTimer.ts';
+
+test('minutesUntilClock counts to the next time on the clock', () => {
+  const at = (h, m) => new Date(2026, 9, 23, h, m, 0, 0);
+  assert.equal(minutesUntilClock('06:30', at(23, 0)), 450);
+  assert.equal(minutesUntilClock('6:30', at(6, 0)), 30);
+  // The same minute, or a time already past, means tomorrow.
+  assert.equal(minutesUntilClock('06:30', at(6, 30)), 1440);
+  assert.equal(minutesUntilClock('00:15', at(23, 45)), 30);
+  assert.equal(minutesUntilClock('25:00', at(6, 0)), null);
+});
