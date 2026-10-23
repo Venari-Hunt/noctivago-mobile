@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.19.1 — 2026-10-23
+
+- **Fix: the level meter in 0.19.0 silenced the whole mix.** It hung off the limiter on a side branch ending in a silent gain; the audio library lets that branch zero the main signal. The meter now sits inside the chain (an analyser passes audio through). Measured on the phone with a recording of the app's own output: 0.16.4 -41.5 dB, the broken 0.19.0 -91 dB (silence), this build -41.0 dB. The level strip shows the mix level (a tick marks -1 dB), a clip notice, and **Lower all sounds N dB**.
+- Arrives over the air.
+
 ## 0.19.0 — 2026-10-23
 
 - **Level strip.** While playing, a bar under the title shows the mix level going into the limiter (a tick marks -1 dB). The mix passes a soft limiter that bends anything past -1 dB and squashes the whole mix under each loud sound (thunder), which sounds like other sounds ducking. When a peak goes past it, a red notice stays until you dismiss it: the worst peak, the loudest Sound Groups, and a one-tap **Lower all sounds N dB** (the PC's "lower every sound equally").
