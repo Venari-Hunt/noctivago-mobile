@@ -11,7 +11,7 @@ import { clockReport, type ClockSample } from '../domain/clockCheck';
 import { addGroup, groupChangeNote, groupOfSound, groupsOf, setMember } from '../domain/groupEdit';
 import { decodedMb, HEAVY_MIX_MB, playedVolume, renameSoundAt, setSoundOn, soundFile, uniqueName } from '../domain/mixEdit';
 import type { PlayerEngine } from '../engine';
-import { addLibrarySounds, removeSound, savePreset, type SavedPreset } from '../storage';
+import { addLibrarySounds, duplicateSound, removeSound, savePreset, type SavedPreset } from '../storage';
 import { AddSoundsSheet } from './AddSoundsSheet';
 import { GroupChips } from './GroupChips';
 import { GroupSheet } from './GroupSheet';
@@ -157,6 +157,21 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
         setAdding(`Loading sounds… ${i - before + 1} of ${next.sounds.length - before}`);
         await engine.addSound(next, i);
       }
+    } catch (e) {
+      fail(e);
+    } finally {
+      setAdding(null);
+    }
+  };
+
+  // A copy with the same settings and its own audio file, added at the end.
+  const duplicate = async (i: number) => {
+    setAdding('Duplicating…');
+    try {
+      const next = duplicateSound(preset, i);
+      setPreset(next);
+      await engine.addSound(next, next.sounds.length - 1);
+      setNote(`Added "${next.sounds[next.sounds.length - 1].name}".`);
     } catch (e) {
       fail(e);
     } finally {
@@ -341,6 +356,7 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
                   ? []
                   : [{ label: 'Reset volume', onPress: () => resetVolume(soundMenu) }]),
                 { label: 'Rename…', onPress: () => setRenaming(soundMenu) },
+                { label: 'Duplicate', onPress: () => duplicate(soundMenu) },
                 ...groupMenu(soundMenu),
                 { label: 'Remove from mix', destructive: true, onPress: () => confirmRemove(soundMenu) },
               ]

@@ -96,6 +96,22 @@ export function appendSound<T extends PhonePreset>(preset: T, sound: NewSound, f
   return { ...p, sounds: [...p.sounds, entry], manifest: { ...p.manifest, sounds: [...manifestSounds(p.manifest), raw] } };
 }
 
+/** A copy of sound `index` at the end of the mix, with all its settings. Its
+ * audio is its own file (`file`), so removing either sound keeps the other.
+ * The copy starts ungrouped. */
+export function duplicateSoundAt<T extends PhonePreset>(preset: T, index: number, file: string): T {
+  const p = withFiles(preset);
+  const from = p.sounds[index];
+  if (!from) return preset;
+  const name = `${from.name} copy`.slice(0, 80);
+  const raw = manifestSounds(p.manifest)[index] ?? {};
+  return {
+    ...p,
+    sounds: [...p.sounds, { ...from, name, bundleName: file, file }],
+    manifest: { ...p.manifest, sounds: [...manifestSounds(p.manifest), { ...raw, name, bundleName: file }] },
+  };
+}
+
 // Removes sound `index`; Sound Group members after it move down one. A
 // group left empty stays (it can get new members); sharing drops it.
 export function removeSoundAt<T extends PhonePreset>(preset: T, index: number): T {

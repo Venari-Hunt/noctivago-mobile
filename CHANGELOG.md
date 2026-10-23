@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.15.8 — 2026-10-23
+
+- **Duplicate a sound.** Tap ⋮ on a sound and pick Duplicate: a copy with the same settings and its own audio file lands at the end of the mix, like the PC. Removing one keeps the other.
+- Arrives over the air.
+
 ## 0.15.7 — 2026-10-23
 
 - **Sound Groups tell you what happened.** A short message shows when a group is created or deleted, and when a sound joins or leaves one.
