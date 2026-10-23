@@ -3,6 +3,7 @@ import {
   AudioManager,
   PlaybackNotificationManager,
   type AudioBuffer,
+  type AnalyserNode,
   type AudioBufferSourceNode,
   type ConstantSourceNode,
   type GainNode,
@@ -12,7 +13,8 @@ import { playedVolume, soundFile } from './domain/mixEdit';
 import { groupBusSpecs, groupIndexOf, loopFade, shotSettings, soundFilterSpec, soundFluctuation, wholeMixFadeIn, wholeMixSpec } from './domain/mixPlan';
 import { syncShot } from './domain/shotPlan';
 import { fadePlan } from './domain/sleepTimer';
-import { MixBus, SoundDrift, type ParamDrift } from './mixGraph';
+import { METER_SAMPLES, MixBus, SoundDrift, type ParamDrift } from './mixGraph';
+import { peakOf } from './domain/levels';
 import { trimFrames } from './domain/trimEdit';
 import { trimBuffer } from './trim';
 import type { NightEntry } from './domain/nightLog';
@@ -51,6 +53,8 @@ type Voice = {
   drift?: SoundDrift;
   /** Its own filters (high-pass, low-pass, gain, echo) between its source and gain. */
   filterBus?: MixBus;
+  /** Reads the sound's level (after its volume) on the way to its bus. */
+  meter: AnalyserNode;
 };
 /** keys[g]: the spec group g's bus was built from, as JSON. */
 type Routes = { wholeMix: MixBus; groups: (MixBus | null)[]; keys: string[] };
@@ -66,6 +70,7 @@ export class PlayerEngine {
   /** By the sound's audio file (mixEdit.soundFile), which stays put when a
    * sound before it is removed. */
   private voices = new Map<string, Voice>();
+  private meterSamples = new Float32Array(METER_SAMPLES);
   private routes: Routes | null = null;
   private playing = false;
   /** How far ahead the Fluctuation walks are booked. */
@@ -169,7 +174,11 @@ export class PlayerEngine {
     const sound = preset.sounds[index];
     const { manifest } = preset;
     const { bus, own } = this.routeOf(preset, index);
-    gain.connect(bus.input);
+    // The meter sits in the chain (a side branch ending nowhere silenced the mix once).
+    const meter = ctx.createAnalyser();
+    meter.fftSize = METER_SAMPLES;
+    meter.smoothingTimeConstant = 0;
+    gain.connect(meter).connect(bus.input);
     // Its own filters sit right after the source, so group routing never sees them.
     const spec = soundFilterSpec(manifest, index);
     const filterBus = spec ? new MixBus(ctx, spec, gain, false) : undefined;
@@ -177,7 +186,7 @@ export class PlayerEngine {
     if (sound.playMode !== 'loop') {
       const shots = new ShotVoice(ctx, buffer, feed, sound.playMode, shotSettings(manifest, index, sound.playMode));
       shots.sync = (voice, at) => this.syncGroup(voice, at);
-      return { gain, buffer, bus, own, shots, filterBus };
+      return { gain, buffer, bus, own, shots, filterBus, meter };
     }
     if (!source) {
       source = ctx.createBufferSource();
@@ -187,7 +196,7 @@ export class PlayerEngine {
     }
     const drift = new SoundDrift(ctx, source.detune, soundFluctuation(manifest, index), feed);
     source.connect(drift.input);
-    return { gain, buffer, bus, own, source, drift, filterBus };
+    return { gain, buffer, bus, own, source, drift, filterBus, meter };
   }
 
   /** Adds sound `index` of the edited mix while loaded, playing or not. */
@@ -253,6 +262,7 @@ export class PlayerEngine {
       voice.filterBus?.dispose();
       voice.shots?.dispose();
       voice.gain.disconnect();
+      voice.meter.disconnect();
       voice.source?.disconnect();
       voice.source?.detune.cancelScheduledValues(ctx.currentTime);
       if (voice.source) voice.source.detune.value = 0;
@@ -295,6 +305,16 @@ export class PlayerEngine {
     return { mix: routes.wholeMix.peak(), groups: routes.groups.map((b) => b?.peak() ?? 0) };
   }
 
+  /** Each sound's highest peak in the last ~85 ms, by key (mixEdit.soundFile); 1 = 0 dBFS. */
+  readSoundLevels(): Map<string, number> {
+    const levels = new Map<string, number>();
+    this.voices.forEach((v, key) => {
+      v.meter.getFloatTimeDomainData(this.meterSamples);
+      levels.set(key, peakOf(this.meterSamples));
+    });
+    return levels;
+  }
+
   /** Fades a sound out of the mix and frees it. key: mixEdit.soundFile. */
   removeSound(key: string) {
     const voice = this.voices.get(key);
@@ -309,6 +329,7 @@ export class PlayerEngine {
       voice.drift?.dispose();
       voice.filterBus?.dispose();
       voice.gain.disconnect();
+      voice.meter.disconnect();
     };
     if (!this.playing) return free();
     this.ramp(voice.gain, 0, FADE_SECONDS);

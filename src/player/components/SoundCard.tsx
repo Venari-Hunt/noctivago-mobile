@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import type { ReactNode } from 'react';
 import { PlayButton } from './PlayButton';
 import { VolumeRow } from './VolumeRow';
 import { colors } from './theme';
@@ -22,9 +23,11 @@ type Props = {
   onDone: (value: number) => void;
   onLongPress: () => void;
   onTest?: () => void;
+  /** A level bar, under the info line. */
+  meter?: ReactNode;
 };
 
-export function SoundCard({ label, value, note, off, onToggle, onChange, onDone, onTest, onLongPress }: Props) {
+export function SoundCard({ label, value, note, off, onToggle, onChange, onDone, onTest, onLongPress, meter }: Props) {
   return (
     <View style={[styles.card, off && styles.cardOff]}>
       <View style={styles.nameRow}>
@@ -37,6 +40,7 @@ export function SoundCard({ label, value, note, off, onToggle, onChange, onDone,
         </Pressable>
       </View>
       <Text style={styles.note}>{note}</Text>
+      {meter}
       <View style={styles.controls}>
         <Pressable
           style={[styles.toggle, !off && styles.toggleOn]}

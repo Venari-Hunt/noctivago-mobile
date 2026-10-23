@@ -19,6 +19,8 @@ import { addLibrarySounds, duplicateSound, removeSound, savePreset, type SavedPr
 import { AddSoundsSheet } from './AddSoundsSheet';
 import { GroupChips } from './GroupChips';
 import { LevelStrip } from './LevelStrip';
+import { SoundMeter } from './SoundMeter';
+import { Troubleshooting } from './Troubleshooting';
 import { GroupSheet } from './GroupSheet';
 import { ShotSheet } from './ShotSheet';
 import { PresetMenu } from './PresetMenu';
@@ -58,7 +60,7 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
   const [timerSheet, setTimerSheet] = useState(false);
   /** The "stop at a time" dialog is open. */
   const [timerAt, setTimerAt] = useState(false);
-  const { showPlaybackCheck, groupBySoundGroup: groupBy } = useSettings();
+  const { showPlaybackCheck, groupBySoundGroup: groupBy, soundMeters } = useSettings();
   const [soundMenu, setSoundMenu] = useState<number | null>(null);
   const [groupSheet, setGroupSheet] = useState<number | null>(null);
   /** The sound whose play mode sheet is open. */
@@ -320,6 +322,7 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
         }}
         onDone={(v) => save(withSound(i, v))}
         onLongPress={() => setSoundMenu(i)}
+        meter={soundMeters && !loading ? <SoundMeter engine={engine} soundKey={soundFile(s, i)} playing={playing} /> : undefined}
         onTest={
           s.playMode !== 'loop' && !loading
             ? () => engine.testShot(soundFile(s, i), s.volume, !s.off).catch(fail)
@@ -363,6 +366,7 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
           </Text>
         ) : (
           <>
+            <Troubleshooting />
             <GroupChips groups={groups} onOpen={setGroupSheet} onNew={() => setNaming({})} />
             {groups.length > 0 && (
               <Choice
