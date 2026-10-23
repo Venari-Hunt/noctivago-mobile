@@ -2,7 +2,7 @@
 
 ## 0.15.11 — 2026-10-23
 
-- **Fix: sound names broke into one letter per line in 0.15.10.** The name now takes the room the volume or mode text leaves and wraps by word; that text never takes more than half the row.
+- **Fix: sound names broke into one letter per line in 0.15.10.** Sound cards now use the desktop's layout: the name on its own line across the whole card (wrapping if long), then a line with the group and volume or mode, then the on/off button and slider.
 - Arrives over the air.
 
 ## 0.15.10 — 2026-10-23

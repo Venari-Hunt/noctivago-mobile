@@ -12,6 +12,7 @@ type Props = {
   onDone: (value: number) => void;
   /** Hold the name for options (sounds in a mix). */
   onLongPress?: () => void;
+  headless?: boolean;
 };
 
 export function VolumeRow({ note, value, off, ...rest }: Props) {

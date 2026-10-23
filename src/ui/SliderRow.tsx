@@ -19,15 +19,17 @@ type Props = {
   onDone: (value: number) => void;
   /** Hold the name for options. */
   onLongPress?: () => void;
+  /** Just the slider: the caller draws the name and value (a sound card). */
+  headless?: boolean;
 };
 
-export function SliderRow({ label, value, min = 0, max = 1, step = 0, text, disabled, dim, onChange, onDone, onLongPress }: Props) {
+export function SliderRow({ label, value, min = 0, max = 1, step = 0, text, disabled, dim, onChange, onDone, onLongPress, headless }: Props) {
   return (
     <View style={styles.row}>
-      <Pressable style={styles.head} onLongPress={onLongPress} disabled={!onLongPress} accessibilityHint={onLongPress ? 'Hold for options' : undefined}>
+      {!headless && <Pressable style={styles.head} onLongPress={onLongPress} disabled={!onLongPress} accessibilityHint={onLongPress ? 'Hold for options' : undefined}>
         <Text style={[styles.label, (disabled || dim) && styles.off]}>{label}</Text>
         <Text style={styles.value}>{text}</Text>
-      </Pressable>
+      </Pressable>}
       <Slider
         value={value}
         disabled={disabled}
