@@ -8,6 +8,8 @@ import {
   shotSettings,
   softClipCurve,
   soundFluctuation,
+  straightClipCurve,
+  CLIP_RANGE,
   wholeMixFadeIn,
   wholeMixSpec,
 } from '../src/player/domain/mixPlan.ts';
@@ -104,4 +106,15 @@ test('the soft ceiling leaves normal levels alone and never passes 0.95', () => 
   assert.ok(Math.abs(at(-0.8) + 0.8) < 1e-3); // nearest curve point
   assert.ok(at(1.5) > 0.9 && at(1.5) < 0.95);
   assert.ok(Math.max(...curve) <= 0.95 && Math.min(...curve) >= -0.95);
+});
+
+
+test('the limiter-off curve passes every sample and matches the soft curve below the knee', () => {
+  const straight = straightClipCurve();
+  const soft = softClipCurve();
+  assert.equal(straight.length, soft.length);
+  assert.ok(Math.abs(straight[0] + CLIP_RANGE) < 1e-6);
+  assert.ok(Math.abs(straight[straight.length - 1] - CLIP_RANGE) < 1e-6);
+  const mid = (straight.length - 1) / 2;
+  for (const i of [mid - 100, mid - 1, mid, mid + 1, mid + 100]) assert.ok(Math.abs(straight[i] - soft[i]) < 1e-6);
 });

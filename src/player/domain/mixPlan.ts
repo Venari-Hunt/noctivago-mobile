@@ -138,6 +138,14 @@ export const CLIP_RANGE = 4; // the curve covers -4..4 (the shaper's input is sc
 const CLIP_KNEE = 0.891;
 const CLIP_CEILING = 0.95;
 
+/** The same curve with the limiter off: every sample passes unchanged. Same
+ * number of points as softClipCurve, so the shaper node treats both alike. */
+export function straightClipCurve(points = 8193): Float32Array {
+  const curve = new Float32Array(points);
+  for (let i = 0; i < points; i++) curve[i] = CLIP_RANGE * ((2 * i) / (points - 1) - 1);
+  return curve;
+}
+
 export function softClipCurve(points = 8193): Float32Array {
   const curve = new Float32Array(points);
   const room = CLIP_CEILING - CLIP_KNEE;
