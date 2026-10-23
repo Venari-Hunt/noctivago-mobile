@@ -37,7 +37,7 @@ export function SliderRow({ label, value, min = 0, max = 1, step = 0, text, disa
         maximumValue={max}
         step={step}
         minimumTrackTintColor={colors.accent}
-        maximumTrackTintColor={colors.raised}
+        maximumTrackTintColor={colors.line}
         thumbTintColor={disabled ? colors.faint : colors.accent}
         onValueChange={onChange}
         onSlidingComplete={onDone}

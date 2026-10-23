@@ -156,8 +156,8 @@ function Toggle({ label, help, value, onChange }: { label: string; help: string;
       <Switch
         value={value}
         onValueChange={onChange}
-        trackColor={{ false: colors.raised, true: colors.accent }}
-        thumbColor={value ? '#000' : colors.faint}
+        trackColor={{ false: colors.line, true: colors.accent }}
+        thumbColor={value ? '#fff' : '#d0d0d0'}
         accessibilityLabel={label}
       />
     </View>

@@ -7,7 +7,9 @@ export const colors = {
   accent: '#ffc933',
   text: '#fff',
   dim: '#bbb',
-  faint: '#666',
+  faint: '#777',
+  /** Outlines and empty tracks: visible on the black page and the dark cards. */
+  line: '#5a5a5a',
   danger: '#ff6b6b',
 };
 
