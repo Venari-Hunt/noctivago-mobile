@@ -2,6 +2,7 @@ import { File } from 'expo-file-system';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
 import { Alert } from 'react-native';
+import { printErrorLog, logUncaughtErrors } from './src/errorLog';
 import { Home, type HomeTab } from './src/home/components/Home';
 import { addSummary, incomingFileName, isAudioFile } from './src/library/domain/library';
 import { PreviewPlayer } from './src/library/preview';
@@ -30,6 +31,11 @@ export default function App() {
   const update = useAutoUpdate(playing, useSettings().autoInstallUpdates);
   // Hands the saved night log to `adb logcat` (scripts/night-report.mjs).
   useEffect(printNightLog, []);
+  // Same for errors (src/errorLog.ts): `adb logcat | grep errorlog`.
+  useEffect(() => {
+    printErrorLog();
+    logUncaughtErrors();
+  }, []);
   // Sounds of mixes imported before 0.15.3 join the library, once.
   useEffect(() => {
     addOldMixesToLibrary()

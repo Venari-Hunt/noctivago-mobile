@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.15.9 — 2026-10-23
+
+- **Fix: Duplicate showed "Invalid file" and could leave a broken copy.** It tried to play the copy before the file finished copying. It now waits, and a second tap while one is loading is ignored. If you already made copies, remove the ones that don't play.
+- **An error log Claude can read.** Errors the app shows, and crashes, are saved on the phone and printed to the Android log at the time and at every start (`adb logcat | grep errorlog`).
+- Arrives over the air.
+
 ## 0.15.8 — 2026-10-23
 
 - **Duplicate a sound.** Tap ⋮ on a sound and pick Duplicate: a copy with the same settings and its own audio file lands at the end of the mix, like the PC. Removing one keeps the other.

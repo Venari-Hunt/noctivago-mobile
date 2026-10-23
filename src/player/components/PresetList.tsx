@@ -1,3 +1,4 @@
+import { logError } from '../../errorLog';
 import { useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { soundsSummary } from '../domain/mixEdit';
@@ -23,6 +24,7 @@ export function PresetList({ onOpen }: Props) {
       const saved = await importFromPicker();
       if (saved) reload();
     } catch (e) {
+      logError('import mix', e);
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);

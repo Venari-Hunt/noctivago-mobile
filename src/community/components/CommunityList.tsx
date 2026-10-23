@@ -1,3 +1,4 @@
+import { logError } from '../../errorLog';
 import { useEffect, useRef, useState } from 'react';
 import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { colors, shared } from '../../player/components/theme';
@@ -40,6 +41,7 @@ export function CommunityList({ onOpen }: Props) {
       setPage(nextPage);
       setHasMore(found.hasMore);
     } catch (e) {
+      logError('community list', e);
       if (mine === ticket.current) setError(e instanceof Error ? e.message : String(e));
     } finally {
       if (mine === ticket.current) setLoading(false);

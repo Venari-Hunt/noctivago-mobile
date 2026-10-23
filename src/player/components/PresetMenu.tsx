@@ -1,3 +1,4 @@
+import { logError } from '../../errorLog';
 import * as Sharing from 'expo-sharing';
 import { useState } from 'react';
 import { Alert } from 'react-native';
@@ -26,7 +27,10 @@ export async function sharePreset(preset: SavedPreset) {
 
 export function PresetMenu({ preset, onClose, onRenamed, onCopied, onDeleted, onError }: Props) {
   const [prompt, setPrompt] = useState<Prompt>(null);
-  const fail = (e: unknown) => onError(e instanceof Error ? e.message : String(e));
+  const fail = (e: unknown) => {
+    logError('mix menu', e);
+    onError(e instanceof Error ? e.message : String(e));
+  };
 
   const confirmDelete = (p: SavedPreset) =>
     Alert.alert(`Delete "${p.name}"?`, 'It is deleted from this phone. Share it first if you want to keep a copy.', [

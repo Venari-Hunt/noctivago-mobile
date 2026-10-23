@@ -7,6 +7,7 @@ import { getSettings, useSettings } from '../../settings/store';
 import { ActionMenu, type Action } from '../../ui/ActionMenu';
 import { BottomSheet } from '../../ui/BottomSheet';
 import { TextPrompt } from '../../ui/TextPrompt';
+import { logError } from '../../errorLog';
 import { clockReport, type ClockSample } from '../domain/clockCheck';
 import { addGroup, groupChangeNote, groupOfSound, groupsOf, setMember } from '../domain/groupEdit';
 import { decodedMb, HEAVY_MIX_MB, playedVolume, renameSoundAt, setSoundOn, soundFile, uniqueName } from '../domain/mixEdit';
@@ -107,7 +108,10 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
     engine
       .load(initial, (done, total) => setLoading(`Loading sounds… ${done} of ${total}`))
       .then(() => setLoading(null))
-      .catch((e) => setError(`Couldn't load this preset: ${e instanceof Error ? e.message : String(e)}`));
+      .catch((e) => {
+        logError('load preset', e);
+        setError(`Couldn't load this preset: ${e instanceof Error ? e.message : String(e)}`);
+      });
     const back = BackHandler.addEventListener('hardwareBackPress', () => {
       onBack();
       return true;
@@ -143,7 +147,10 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
     ...preset,
     sounds: preset.sounds.map((s, j) => (j === i ? { ...s, volume: v } : s)),
   });
-  const fail = (e: unknown) => setError(e instanceof Error ? e.message : String(e));
+  const fail = (e: unknown, where = 'player') => {
+    logError(where, e);
+    setError(e instanceof Error ? e.message : String(e));
+  };
 
   // Copied into the mix, then playing right away (fading in) if the mix is.
   const addSounds = async (sounds: LibrarySound[]) => {
@@ -166,14 +173,15 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
 
   // A copy with the same settings and its own audio file, added at the end.
   const duplicate = async (i: number) => {
+    if (adding) return; // a second tap while one copy is still loading
     setAdding('Duplicating…');
     try {
-      const next = duplicateSound(preset, i);
+      const next = await duplicateSound(preset, i);
       setPreset(next);
       await engine.addSound(next, next.sounds.length - 1);
       setNote(`Added "${next.sounds[next.sounds.length - 1].name}".`);
     } catch (e) {
-      fail(e);
+      fail(e, 'duplicate');
     } finally {
       setAdding(null);
     }
@@ -316,7 +324,7 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
         playing={playing}
         status={loading ?? adding}
         disabled={blocked}
-        onPlayPause={() => (playing ? pause() : play()).catch((e) => setError(String(e)))}
+        onPlayPause={() => (playing ? pause() : play()).catch((e) => fail(e, 'play/pause'))}
         master={preset.master}
         onMaster={(v) => {
           engine.setMasterVolume(v, playingRef.current);
@@ -335,7 +343,7 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
           disabled={blocked}
           onPick={(m) => {
             setTimerSheet(false);
-            pickSleep(m).catch((e) => setError(String(e)));
+            pickSleep(m).catch((e) => fail(e, 'sleep timer'));
           }}
           onOff={() => {
             setTimerSheet(false);
