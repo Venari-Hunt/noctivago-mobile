@@ -283,6 +283,14 @@ export class PlayerEngine {
     this.drifts = this.drifts.filter((d) => !gone.has(d));
   }
 
+  /** The highest peak that reached the limiter since the last call: the whole
+   * mix and each Sound Group (0 for a group with no bus). 1 = 0 dBFS. */
+  readLevels(): { mix: number; groups: number[] } {
+    const routes = this.routes;
+    if (!routes) return { mix: 0, groups: [] };
+    return { mix: routes.wholeMix.peak(), groups: routes.groups.map((b) => b?.peak() ?? 0) };
+  }
+
   /** Fades a sound out of the mix and frees it. key: mixEdit.soundFile. */
   removeSound(key: string) {
     const voice = this.voices.get(key);

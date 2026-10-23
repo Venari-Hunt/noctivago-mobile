@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.19.0 — 2026-10-23
+
+- **Level strip.** While playing, a bar under the title shows the mix level going into the limiter (a tick marks -1 dB). The mix passes a soft limiter that bends anything past -1 dB and squashes the whole mix under each loud sound (thunder), which sounds like other sounds ducking. When a peak goes past it, a red notice stays until you dismiss it: the worst peak, the loudest Sound Groups, and a one-tap **Lower all sounds N dB** (the PC's "lower every sound equally").
+- Arrives over the air.
+
 ## 0.18.0 — 2026-10-23
 
 - **Filters per sound.** The sound menu's **Play mode & trim…** is now **Sound settings…** and has a **Filters** section: high-pass, low-pass, gain and echo for that sound alone, live, with the same ranges as the PC's Remix and Sound Groups. Sounds baked by the PC already carry their filters in the audio, so those start with everything off.
