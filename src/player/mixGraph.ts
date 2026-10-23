@@ -18,7 +18,7 @@ import { CLIP_RANGE, softClipCurve, straightClipCurve, type BusSpec } from './do
 // sound's volume and pitch, 0.02 s for pan and the buses); a walk with a
 // slower glide than that just uses its own.
 // About 85 ms of audio at 48 kHz: read every 100 ms, no peak slips between reads.
-const METER_SAMPLES = 4096;
+export const METER_SAMPLES = 4096;
 const SOUND_SMOOTHING = 0.12;
 const BUS_SMOOTHING = 0.02;
 

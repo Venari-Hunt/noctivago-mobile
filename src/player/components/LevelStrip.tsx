@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
 import { CLIP_THRESHOLD, dbText, FLOOR_DB, isClipping, latchClip, suggestedLowerDb, toDb, type ClipLatch } from '../domain/levels';
 import type { PlayerEngine } from '../engine';
 import { colors } from './theme';
@@ -27,10 +27,13 @@ export function LevelStrip({ engine, playing, groupNames, onLower }: Props) {
   const [db, setDb] = useState(FLOOR_DB);
   const [latch, setLatch] = useState<ClipLatch | null>(null);
   const held = useRef(FLOOR_DB);
+  const [width, setWidth] = useState(0);
+  const slide = useRef(new Animated.Value(0)).current; // 0..1 of the track, glided natively
 
   useEffect(() => {
     if (!playing) {
       held.current = FLOOR_DB;
+      slide.setValue(0);
       setDb(FLOOR_DB);
       return;
     }
@@ -40,11 +43,13 @@ export function LevelStrip({ engine, playing, groupNames, onLower }: Props) {
       const now = toDb(levels.mix);
       // Rises at once, falls a little at a time, like a meter.
       held.current = Math.max(now, held.current - 3);
-      setDb(held.current);
+      Animated.timing(slide, { toValue: pos(held.current), duration: POLL_MS, easing: Easing.linear, useNativeDriver: true }).start();
+      // The number and colour re-render only when they change to a new tenth.
+      setDb((was) => (Math.round(was * 10) === Math.round(held.current * 10) ? was : held.current));
       setLatch((l) => latchClip(l, levels.mix, levels.groups));
     }, POLL_MS);
     return () => clearInterval(id);
-  }, [engine, playing]);
+  }, [engine, playing, slide]);
 
   if (!playing && !latch) return null;
   const hot = db > toDb(CLIP_THRESHOLD);
@@ -56,8 +61,10 @@ export function LevelStrip({ engine, playing, groupNames, onLower }: Props) {
     <View style={styles.wrap}>
       {playing && (
         <View style={styles.row} accessibilityLabel={`Mix level ${dbText(db)}`}>
-          <View style={styles.track}>
-            <View style={[styles.fill, { width: `${pos(db) * 100}%`, backgroundColor: hot ? RED : colors.accent }]} />
+          <View style={styles.track} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
+            <Animated.View
+              style={[styles.fill, { backgroundColor: hot ? RED : colors.accent, transform: [{ translateX: slide.interpolate({ inputRange: [0, 1], outputRange: [-width, 0] }) }] }]}
+            />
             <View style={[styles.tick, { left: `${pos(toDb(CLIP_THRESHOLD)) * 100}%` }]} />
           </View>
           <Text style={[styles.level, hot && { color: RED }]}>{dbText(db)}</Text>
@@ -95,7 +102,7 @@ const styles = StyleSheet.create({
   wrap: { gap: 8, paddingHorizontal: 24, paddingBottom: 8 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   track: { flex: 1, height: 6, borderRadius: 3, backgroundColor: colors.raised, overflow: 'hidden' },
-  fill: { height: 6, borderRadius: 3 },
+  fill: { height: 6, width: '100%' },
   tick: { position: 'absolute', top: 0, width: 2, height: 6, backgroundColor: colors.faint },
   level: { color: colors.faint, fontSize: 13, minWidth: 64, textAlign: 'right' },
   banner: { backgroundColor: colors.card, borderRadius: 12, borderWidth: 1, borderColor: RED, padding: 12, gap: 8 },

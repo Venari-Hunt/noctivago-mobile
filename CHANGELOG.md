@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.19.6 — 2026-10-23
+
+- **Troubleshooting panel and per-sound level meters.** A folded **Troubleshooting** row sits above the sound list in a mix. Open it to switch on a **level bar under every sound's name** (red when its peak nears the limiter) and the **Playback check** line (also in Settings). Both are remembered. Each sound now passes through a level reader on the way to its group; it only reads while the switch is on.
+- Not sent over the air yet: it touches the audio path, so it waits for a listen on the phone first.
+
 ## 0.19.5 — 2026-10-23
 
 - **Group by Sound Group.** In a mix that has groups, a **List / By group** switch sits under the group chips. By group lists the sounds under their group's name, with sounds in no group first, like the PC's Group by: Sound Group. Your choice is remembered.

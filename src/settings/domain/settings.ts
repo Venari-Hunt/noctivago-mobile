@@ -19,6 +19,8 @@ export type AppSettings = {
   softLimiter: boolean;
   /** The player lists sounds under their Sound Groups (the PC's Group by: Sound Group). */
   groupBySoundGroup: boolean;
+  /** A level bar on every sound card while playing (the player's Troubleshooting panel). */
+  soundMeters: boolean;
 };
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -31,6 +33,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   showPlaybackCheck: false,
   softLimiter: true,
   groupBySoundGroup: false,
+  soundMeters: false,
 };
 
 export const FADE_CHOICES = [10, 30, 60, 300];
@@ -60,5 +63,6 @@ export function parseSettings(raw: unknown): AppSettings {
     showPlaybackCheck: bool('showPlaybackCheck'),
     softLimiter: bool('softLimiter'),
     groupBySoundGroup: bool('groupBySoundGroup'),
+    soundMeters: bool('soundMeters'),
   };
 }
