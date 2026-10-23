@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.15.10 — 2026-10-23
+
+- **Full sound names.** A long name wraps to a second line instead of being cut off with "…"; the volume or mode text moves under it when there is no room.
+- Arrives over the air.
+
 ## 0.15.9 — 2026-10-23
 
 - **Fix: Duplicate showed "Invalid file" and could leave a broken copy.** It tried to play the copy before the file finished copying. It now waits, and a second tap while one is loading is ignored. If you already made copies, remove the ones that don't play.
