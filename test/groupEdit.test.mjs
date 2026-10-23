@@ -115,3 +115,18 @@ test('groupChangeNote says what changed in the groups', () => {
   assert.equal(groupChangeNote(b, deleteGroup(b, 0)), 'Group "Night" deleted. Its sounds play on their own.');
   assert.equal(groupChangeNote(b, renameGroup(b, 0, 'Dusk')), null);
 });
+
+import { sectionsOf } from '../src/player/domain/groupEdit.ts';
+
+test('sectionsOf puts loose sounds first, then groups by name, leaving empty groups out', () => {
+  let m = addGroup(addGroup(mix(), 'Wind'), 'Birds');
+  addGroup(m, 'Empty');
+  m = addGroup(m, 'Empty');
+  m = setMember(m, 1, 0, true); // Birds (second added)... groups are [Wind, Birds, Empty]
+  m = setMember(m, 0, 2, true);
+  const sections = sectionsOf(m);
+  assert.deepEqual(sections.map((s) => s.title), ['Not in a group', 'Birds', 'Wind']);
+  assert.deepEqual(sections.map((s) => s.soundIndexes), [[1], [0], [2]]);
+  assert.deepEqual(sections.map((s) => s.groupIndex), [null, 1, 0]);
+  assert.deepEqual(sectionsOf(mix()).map((s) => s.title), ['Not in a group']);
+});

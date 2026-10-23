@@ -17,6 +17,8 @@ export type AppSettings = {
   showPlaybackCheck: boolean;
   /** The soft limiter that bends peaks past -1 dB. Off passes the mix as is (the phone's output clips at 0 dB). Read when a mix opens. */
   softLimiter: boolean;
+  /** The player lists sounds under their Sound Groups (the PC's Group by: Sound Group). */
+  groupBySoundGroup: boolean;
 };
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -28,6 +30,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   community: true,
   showPlaybackCheck: false,
   softLimiter: true,
+  groupBySoundGroup: false,
 };
 
 export const FADE_CHOICES = [10, 30, 60, 300];
@@ -56,5 +59,6 @@ export function parseSettings(raw: unknown): AppSettings {
     community: bool('community'),
     showPlaybackCheck: bool('showPlaybackCheck'),
     softLimiter: bool('softLimiter'),
+    groupBySoundGroup: bool('groupBySoundGroup'),
   };
 }

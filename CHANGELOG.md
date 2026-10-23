@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.19.5 — 2026-10-23
+
+- **Group by Sound Group.** In a mix that has groups, a **List / By group** switch sits under the group chips. By group lists the sounds under their group's name, with sounds in no group first, like the PC's Group by: Sound Group. Your choice is remembered.
+- Arrives over the air.
+
 ## 0.19.4 — 2026-10-23
 
 - **Feedback and error log in Settings → About.** **Send feedback or ideas** opens the project's GitHub Discussions; **Share the error log** shares the phone's small error log (error messages only) through the share sheet, so a problem can be diagnosed without a cable.

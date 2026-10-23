@@ -180,3 +180,25 @@ export function positionToHz(field: 'highpassHz' | 'lowpassHz', pos: number): nu
   const step = hz < 100 ? 1 : hz < 1000 ? 10 : 50;
   return Math.round(hz / step) * step;
 }
+
+/** The mix's sounds laid out under their Sound Groups, like the desktop's
+ * "Group by: Sound Group": sounds in no group first (the desktop calls them
+ * "Playing (ungrouped)"), then each group by name with its members in mix
+ * order. Empty groups are left out. */
+export type Section = { key: string; title: string; groupIndex: number | null; soundIndexes: number[] };
+
+export function sectionsOf(preset: PhonePreset): Section[] {
+  const groups = groupsOf(preset);
+  const grouped = new Set(groups.flatMap((g) => g.soundIndexes.filter((i) => preset.sounds[i])));
+  const loose = preset.sounds.flatMap((_, i) => (grouped.has(i) ? [] : [i]));
+  const out: Section[] = [];
+  if (loose.length) out.push({ key: 'none', title: 'Not in a group', groupIndex: null, soundIndexes: loose });
+  groups
+    .map((g, gi) => ({ g, gi }))
+    .sort((a, b) => a.g.name.localeCompare(b.g.name))
+    .forEach(({ g, gi }) => {
+      const members = g.soundIndexes.filter((i) => preset.sounds[i]).sort((a, b) => a - b);
+      if (members.length) out.push({ key: `g${gi}`, title: g.name, groupIndex: gi, soundIndexes: members });
+    });
+  return out;
+}

@@ -3,15 +3,16 @@ import { useEffect, useRef, useState } from 'react';
 import { Alert, BackHandler, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { LibrarySound } from '../../library/domain/library';
 import { fadeLabel } from '../../settings/domain/settings';
-import { getSettings, useSettings } from '../../settings/store';
+import { getSettings, setSettings, useSettings } from '../../settings/store';
 import { ActionMenu, type Action } from '../../ui/ActionMenu';
 import { BottomSheet } from '../../ui/BottomSheet';
+import { Choice } from '../../ui/Choice';
 import { TextPrompt } from '../../ui/TextPrompt';
 import { logError } from '../../errorLog';
 import { clockReport, type ClockSample } from '../domain/clockCheck';
 import { lowerAllVolumes } from '../domain/levels';
 import { minutesUntilClock } from '../domain/sleepTimer';
-import { addGroup, groupChangeNote, groupOfSound, groupsOf, setMember } from '../domain/groupEdit';
+import { addGroup, groupChangeNote, groupOfSound, groupsOf, sectionsOf, setMember } from '../domain/groupEdit';
 import { decodedMb, HEAVY_MIX_MB, playedVolume, renameSoundAt, setSoundOn, soloGain, soundFile, uniqueName } from '../domain/mixEdit';
 import type { PlayerEngine } from '../engine';
 import { addLibrarySounds, duplicateSound, removeSound, savePreset, type SavedPreset } from '../storage';
@@ -57,7 +58,7 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
   const [timerSheet, setTimerSheet] = useState(false);
   /** The "stop at a time" dialog is open. */
   const [timerAt, setTimerAt] = useState(false);
-  const { showPlaybackCheck } = useSettings();
+  const { showPlaybackCheck, groupBySoundGroup: groupBy } = useSettings();
   const [soundMenu, setSoundMenu] = useState<number | null>(null);
   const [groupSheet, setGroupSheet] = useState<number | null>(null);
   /** The sound whose play mode sheet is open. */
@@ -302,6 +303,32 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
     ];
   };
 
+  // One sound's card, wherever the list puts it.
+  const renderCard = (i: number) => {
+    const s = preset.sounds[i];
+    return (
+      <SoundCard
+        key={soundFile(s, i)}
+        label={s.name}
+        value={s.volume}
+        off={s.off}
+        note={soundNote(solo !== null ? (solo === i ? 'Solo' : 'Silent (solo)') : s.off ? 'Off' : MODE_NOTE[s.playMode] ?? `${Math.round(s.volume * 100)}%`, groups[groupOfSound(preset, i)]?.name)}
+        onToggle={() => toggleSound(i)}
+        onChange={(v) => {
+          if (!s.off || solo === i) engine.setSoundVolume(soundFile(s, i), soloGain({ ...s, volume: v }, i, solo));
+          update(withSound(i, v));
+        }}
+        onDone={(v) => save(withSound(i, v))}
+        onLongPress={() => setSoundMenu(i)}
+        onTest={
+          s.playMode !== 'loop' && !loading
+            ? () => engine.testShot(soundFile(s, i), s.volume, !s.off).catch(fail)
+            : undefined
+        }
+      />
+    );
+  };
+
   const blocked = !!loading || !!error || empty;
   const onCount = preset.sounds.filter((s) => !s.off).length;
 
@@ -335,29 +362,28 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
             that plays one shot right away, to try their settings.
           </Text>
         ) : (
-          <GroupChips groups={groups} onOpen={setGroupSheet} onNew={() => setNaming({})} />
+          <>
+            <GroupChips groups={groups} onOpen={setGroupSheet} onNew={() => setNaming({})} />
+            {groups.length > 0 && (
+              <Choice
+                options={[
+                  { value: 'list', label: 'List' },
+                  { value: 'groups', label: 'By group' },
+                ]}
+                value={groupBy ? 'groups' : 'list'}
+                onChange={(v) => setSettings({ groupBySoundGroup: v === 'groups' })}
+              />
+            )}
+          </>
         )}
-        {preset.sounds.map((s, i) => (
-          <SoundCard
-            key={soundFile(s, i)}
-            label={s.name}
-            value={s.volume}
-            off={s.off}
-            note={soundNote(solo !== null ? (solo === i ? 'Solo' : 'Silent (solo)') : s.off ? 'Off' : MODE_NOTE[s.playMode] ?? `${Math.round(s.volume * 100)}%`, groups[groupOfSound(preset, i)]?.name)}
-            onToggle={() => toggleSound(i)}
-            onChange={(v) => {
-              if (!s.off || solo === i) engine.setSoundVolume(soundFile(s, i), soloGain({ ...s, volume: v }, i, solo));
-              update(withSound(i, v));
-            }}
-            onDone={(v) => save(withSound(i, v))}
-            onLongPress={() => setSoundMenu(i)}
-            onTest={
-              s.playMode !== 'loop' && !loading
-                ? () => engine.testShot(soundFile(s, i), s.volume, !s.off).catch(fail)
-                : undefined
-            }
-          />
-        ))}
+        {groupBy
+          ? sectionsOf(preset).map((sec) => (
+              <View key={sec.key} style={styles.section}>
+                <Text style={styles.sectionTitle}>{sec.title} · {sec.soundIndexes.length}</Text>
+                {sec.soundIndexes.map((i) => renderCard(i))}
+              </View>
+            ))
+          : preset.sounds.map((_, i) => renderCard(i))}
         {heavyMb > HEAVY_MIX_MB && (
           <Text style={styles.note}>Heavy mix: about {Math.round(heavyMb)} MB of memory while playing. Long sounds take the most.</Text>
         )}
@@ -494,6 +520,8 @@ const styles = StyleSheet.create({
   link: { color: colors.accent, fontSize: 16 },
   dots: { color: colors.accent, fontSize: 24, paddingHorizontal: 6 },
   note: { color: colors.dim, fontSize: 14 },
+  section: { gap: 12 },
+  sectionTitle: { color: colors.dim, fontSize: 13, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase', marginTop: 8 },
   scroll: { flex: 1 },
   sounds: { gap: 10, paddingHorizontal: 16, paddingBottom: 24 },
 });

@@ -1,6 +1,6 @@
 {
   "name": "noctivago-mobile",
-  "version": "0.19.4",
+  "version": "0.19.5",
   "license": "Apache-2.0",
   "main": "index.ts",
   "dependencies": {
