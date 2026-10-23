@@ -19,15 +19,17 @@ type Props = {
   onDone: (value: number) => void;
   /** Hold the name for options. */
   onLongPress?: () => void;
+  /** Just the slider: the caller draws the name and value (a sound card). */
+  headless?: boolean;
 };
 
-export function SliderRow({ label, value, min = 0, max = 1, step = 0, text, disabled, dim, onChange, onDone, onLongPress }: Props) {
+export function SliderRow({ label, value, min = 0, max = 1, step = 0, text, disabled, dim, onChange, onDone, onLongPress, headless }: Props) {
   return (
     <View style={styles.row}>
-      <Pressable style={styles.head} onLongPress={onLongPress} disabled={!onLongPress} accessibilityHint={onLongPress ? 'Hold for options' : undefined}>
+      {!headless && <Pressable style={styles.head} onLongPress={onLongPress} disabled={!onLongPress} accessibilityHint={onLongPress ? 'Hold for options' : undefined}>
         <Text style={[styles.label, (disabled || dim) && styles.off]}>{label}</Text>
         <Text style={styles.value}>{text}</Text>
-      </Pressable>
+      </Pressable>}
       <Slider
         value={value}
         disabled={disabled}
@@ -46,9 +48,10 @@ export function SliderRow({ label, value, min = 0, max = 1, step = 0, text, disa
 
 const styles = StyleSheet.create({
   row: { gap: 2 },
-  // Long names wrap to a second line and push the value under them, never clipped.
-  head: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', columnGap: 12 },
-  label: { color: colors.text, fontSize: 16, flexShrink: 1, flexGrow: 1 },
+  // The name takes the room the value leaves and wraps by word; the value
+  // never takes more than half the row, so a long name is never squeezed.
+  head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 },
+  label: { color: colors.text, fontSize: 16, flex: 1 },
   off: { color: colors.faint },
-  value: { color: colors.faint, fontSize: 14, marginLeft: 'auto' },
+  value: { color: colors.faint, fontSize: 14, maxWidth: '50%', textAlign: 'right' },
 });
