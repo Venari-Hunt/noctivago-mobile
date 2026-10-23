@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.16.2 — 2026-10-23
+
+- **Sleep timer: stop at a time.** The Timer sheet has an **At a time…** chip: type 24 h time like 06:30 and playback fades out then (a time that already passed means tomorrow).
+- Arrives over the air.
+
 ## 0.16.1 — 2026-10-23
 
 - **Each play, on the phone.** In Play mode… (⋮ on a Random or Scheduled sound), a new **Each play** section sets how every play varies: volume, pitch, pan and speed (lowest to highest, or fully random) and fade in/out. Same fields and ranges as the PC's Remix.

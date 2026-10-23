@@ -10,11 +10,13 @@ type Props = {
   minutes: number | null;
   disabled?: boolean;
   onPick: (minutes: number) => void;
+  /** Ask for a clock time to stop at. */
+  onAtTime: () => void;
   onOff: () => void;
 };
 
-// The timer's choices (in the player's Timer sheet): Off, then 15m to 2h.
-export function SleepTimerRow({ endsAt, minutes, disabled, onPick, onOff }: Props) {
+// The timer's choices (in the player's Timer sheet): Off, then 15m to 2h, then a clock time.
+export function SleepTimerRow({ endsAt, minutes, disabled, onPick, onAtTime, onOff }: Props) {
   const now = useNow(endsAt !== null);
 
   return (
@@ -27,6 +29,7 @@ export function SleepTimerRow({ endsAt, minutes, disabled, onPick, onOff }: Prop
         {SLEEP_PRESET_MINUTES.map((m) => (
           <Chip key={m} text={presetLabel(m)} active={endsAt !== null && m === minutes} disabled={disabled} onPress={() => onPick(m)} />
         ))}
+        <Chip text="At a time…" disabled={disabled} onPress={onAtTime} />
       </ScrollView>
     </View>
   );

@@ -9,6 +9,7 @@ import { BottomSheet } from '../../ui/BottomSheet';
 import { TextPrompt } from '../../ui/TextPrompt';
 import { logError } from '../../errorLog';
 import { clockReport, type ClockSample } from '../domain/clockCheck';
+import { minutesUntilClock } from '../domain/sleepTimer';
 import { addGroup, groupChangeNote, groupOfSound, groupsOf, setMember } from '../domain/groupEdit';
 import { decodedMb, HEAVY_MIX_MB, playedVolume, renameSoundAt, setSoundOn, soundFile, uniqueName } from '../domain/mixEdit';
 import type { PlayerEngine } from '../engine';
@@ -52,6 +53,8 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
   const [adding, setAdding] = useState<string | null>(null);
   const [menu, setMenu] = useState(false);
   const [timerSheet, setTimerSheet] = useState(false);
+  /** The "stop at a time" dialog is open. */
+  const [timerAt, setTimerAt] = useState(false);
   const { showPlaybackCheck } = useSettings();
   const [soundMenu, setSoundMenu] = useState<number | null>(null);
   const [groupSheet, setGroupSheet] = useState<number | null>(null);
@@ -360,6 +363,10 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
             setTimerSheet(false);
             pickSleep(m).catch((e) => fail(e, 'sleep timer'));
           }}
+          onAtTime={() => {
+            setTimerSheet(false);
+            setTimerAt(true);
+          }}
           onOff={() => {
             setTimerSheet(false);
             sleepOff();
@@ -367,6 +374,19 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
         />
         <Text style={shared.small}>Fades out over {fadeLabel(getSettings().sleepFadeSeconds)} at the end. Change it in Settings.</Text>
       </BottomSheet>
+      <TextPrompt
+        title={timerAt ? 'Stop playing at (24 h, like 06:30)' : null}
+        initial=""
+        placeholder="HH:MM"
+        okLabel="Start"
+        onOk={(text) => {
+          setTimerAt(false);
+          const minutes = minutesUntilClock(text);
+          if (minutes === null) Alert.alert('Not a time', 'Use 24-hour time, like 06:30 or 23:15.');
+          else pickSleep(minutes).catch((e) => fail(e, 'sleep timer'));
+        }}
+        onCancel={() => setTimerAt(false)}
+      />
       <AddSoundsSheet visible={picking} onAdd={(sounds) => addSounds(sounds)} onClose={() => setPicking(false)} />
       <ActionMenu
         title={menuSound?.name ?? null}

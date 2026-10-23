@@ -1,3 +1,5 @@
+import { normalizeTime } from './shotEdit.ts';
+
 // Sleep timer rules. The engine schedules the fade on the audio clock, since
 // JS timers stall while the screen is off; these are just the numbers.
 
@@ -33,4 +35,17 @@ export function countdown(msLeft: number): string {
 // The player's timer button: "Timer" while off, else the time left.
 export function timerButtonLabel(msLeft: number | null): string {
   return msLeft === null ? 'Timer' : countdown(msLeft);
+}
+
+/** Whole minutes from `now` to the next time the clock reads `text` (24 h,
+ * like "6:30"); a time that already passed today means tomorrow. Null when
+ * `text` isn't a time. */
+export function minutesUntilClock(text: string, now: Date = new Date()): number | null {
+  const time = normalizeTime(text);
+  if (!time) return null;
+  const [h, m] = time.split(':').map(Number);
+  const target = new Date(now);
+  target.setHours(h, m, 0, 0);
+  if (target.getTime() <= now.getTime()) target.setDate(target.getDate() + 1);
+  return Math.max(1, Math.round((target.getTime() - now.getTime()) / 60000));
 }
