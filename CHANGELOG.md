@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.17.0 — 2026-10-23
+
+- **Trim a sound.** ⋮ on a sound → **Play mode & trim…** has a new **Trim** section: set where the clip starts and ends (tenths of a second). The sound restarts with the cut; the original file is untouched. Same fields as the PC's Remix (`loopStart` / `loopEnd`), so a shared mix keeps the trim on the PC. Clips baked by the PC play whole, as before.
+- Arrives over the air.
+
 ## 0.16.4 — 2026-10-23
 
 - **Privacy text in Settings.** Says what stays on the phone and the only times the app goes online (Freesound search, Community, a link you type, update checks). No accounts, ads or tracking.

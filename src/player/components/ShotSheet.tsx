@@ -5,6 +5,7 @@ import { Choice } from '../../ui/Choice';
 import { SliderRow } from '../../ui/SliderRow';
 import { TextPrompt } from '../../ui/TextPrompt';
 import type { PlayMode } from '../domain/presetFile';
+import { clipTime, MIN_TRIM_SECONDS, setTrim, trimOf } from '../domain/trimEdit';
 import {
   addScheduleTime,
   axisValueText,
@@ -233,6 +234,24 @@ export function ShotSheet({ preset, index, onChange, onClose }: Props) {
             })()}
           </>
         )}
+        {sound.durationSeconds ? (
+          <>
+            <Text style={styles.section}>Trim</Text>
+            {(() => {
+              const duration = sound.durationSeconds as number;
+              const t = trimOf(preset.manifest, index, duration);
+              const start = shown('trim-start', t.start);
+              const end = shown('trim-end', t.end);
+              return (
+                <View style={styles.fold}>
+                  <SliderRow label="Start" value={start} min={0} max={Math.max(MIN_TRIM_SECONDS, duration - MIN_TRIM_SECONDS)} step={0.1} text={clipTime(start)} onChange={(x) => setDrag({ key: 'trim-start', value: x })} onDone={(x) => apply(setTrim(preset, index, duration, { start: x }))} />
+                  <SliderRow label="End" value={end} min={MIN_TRIM_SECONDS} max={duration} step={0.1} text={clipTime(end)} onChange={(x) => setDrag({ key: 'trim-end', value: x })} onDone={(x) => apply(setTrim(preset, index, duration, { end: x }))} />
+                  <Text style={shared.small}>Keeps {clipTime(end - start)} of {clipTime(duration)}. The sound restarts when you change this.</Text>
+                </View>
+              );
+            })()}
+          </>
+        ) : null}
       </ScrollView>
       <TextPrompt
         title={adding ? 'Add a time (24 h, like 18:30)' : null}
