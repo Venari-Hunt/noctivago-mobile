@@ -77,6 +77,27 @@ export function addGroup<T extends PhonePreset>(preset: T, name: string, soundIn
   return withGroups(preset, [...next, group]);
 }
 
+/** A short message for what an edit changed in the groups (null when nothing
+ * a person would notice moved: filters, drift, rename). */
+export function groupChangeNote(prev: PhonePreset, next: PhonePreset): string | null {
+  const before = groupsOf(prev);
+  const after = groupsOf(next);
+  if (after.length > before.length) return `Group "${after[after.length - 1].name}" created.`;
+  if (after.length < before.length) {
+    const gone = before.find((g) => !after.some((a) => a.name === g.name));
+    return gone ? `Group "${gone.name}" deleted. Its sounds play on their own.` : 'Group deleted.';
+  }
+  for (let gi = 0; gi < after.length; gi++) {
+    const had = new Set(before[gi].soundIndexes);
+    const has = new Set(after[gi].soundIndexes);
+    const added = after[gi].soundIndexes.find((i) => !had.has(i));
+    const left = before[gi].soundIndexes.find((i) => !has.has(i));
+    if (added !== undefined) return `${next.sounds[added]?.name ?? 'Sound'} is now in "${after[gi].name}".`;
+    if (left !== undefined) return `${next.sounds[left]?.name ?? 'Sound'} left "${before[gi].name}".`;
+  }
+  return null;
+}
+
 /** Puts a sound in group `gi` (leaving any other) or takes it out. */
 export function setMember<T extends PhonePreset>(preset: T, gi: number, soundIndex: number, member: boolean): T {
   const groups = without(groupsOf(preset), soundIndex);

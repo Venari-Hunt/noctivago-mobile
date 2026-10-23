@@ -8,7 +8,7 @@ import { ActionMenu, type Action } from '../../ui/ActionMenu';
 import { BottomSheet } from '../../ui/BottomSheet';
 import { TextPrompt } from '../../ui/TextPrompt';
 import { clockReport, type ClockSample } from '../domain/clockCheck';
-import { addGroup, groupOfSound, groupsOf, setMember } from '../domain/groupEdit';
+import { addGroup, groupChangeNote, groupOfSound, groupsOf, setMember } from '../domain/groupEdit';
 import { decodedMb, HEAVY_MIX_MB, playedVolume, renameSoundAt, setSoundOn, soundFile, uniqueName } from '../domain/mixEdit';
 import type { PlayerEngine } from '../engine';
 import { addLibrarySounds, removeSound, savePreset, type SavedPreset } from '../storage';
@@ -53,6 +53,8 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
   const { showPlaybackCheck } = useSettings();
   const [soundMenu, setSoundMenu] = useState<number | null>(null);
   const [groupSheet, setGroupSheet] = useState<number | null>(null);
+  /** A just-made group opens with its sound list already showing. */
+  const [pickFirst, setPickFirst] = useState(false);
   /** The sound being renamed (its name dialog is open). */
   const [renaming, setRenaming] = useState<number | null>(null);
   /** The "New group" name dialog; soundIndex joins the new group. */
@@ -164,6 +166,8 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
 
   // Sound Group edits play right away (engine.regroup) and are saved.
   const regroup = (next: SavedPreset) => {
+    const said = groupChangeNote(preset, next);
+    if (said) setNote(said);
     engine.regroup(next);
     save(next);
   };
@@ -173,8 +177,11 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
     setNaming(null);
     const next = addGroup(preset, name, soundIndex);
     regroup(next);
-    // A group made from the Groups list opens to pick its sounds.
-    if (soundIndex === undefined) setGroupSheet(groupsOf(next).length - 1);
+    // A group made from the Groups list opens to pick its sounds, list ready.
+    if (soundIndex === undefined) {
+      setPickFirst(true);
+      setGroupSheet(groupsOf(next).length - 1);
+    }
   };
 
   const toggleSound = (i: number) => {
@@ -351,7 +358,16 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
         }}
         onCancel={() => setRenaming(null)}
       />
-      <GroupSheet preset={preset} index={groupSheet} onChange={regroup} onClose={() => setGroupSheet(null)} />
+      <GroupSheet
+        preset={preset}
+        index={groupSheet}
+        startWithSounds={pickFirst}
+        onChange={regroup}
+        onClose={() => {
+          setGroupSheet(null);
+          setPickFirst(false);
+        }}
+      />
       <TextPrompt
         title={naming ? 'New Sound Group' : null}
         initial={uniqueName('Group', groups.map((g) => g.name))}
