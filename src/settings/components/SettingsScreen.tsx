@@ -107,6 +107,17 @@ export function SettingsScreen({ update, onBack }: Props) {
           />
         </Section>
 
+        <Section title="Privacy">
+          <Text style={shared.help}>
+            Your mixes, sounds and settings stay on this phone. There are no accounts, ads or tracking. The app only goes online
+            when you use Browse Sounds (your search words go to freesound.org), the Community tab (to list and download shared
+            presets), a link you type in, or to check for updates.
+          </Text>
+          <Text style={shared.help}>
+            Removing the app deletes everything it stored. Errors are kept in a small log on the phone and are never sent anywhere.
+          </Text>
+        </Section>
+
         <Section title="About">
           <Link text="What's new" url={`${REPO}/blob/master/CHANGELOG.md`} />
           <Link text="Source code and license (Apache 2.0)" url={REPO} />

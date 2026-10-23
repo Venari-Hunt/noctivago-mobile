@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.16.4 — 2026-10-23
+
+- **Privacy text in Settings.** Says what stays on the phone and the only times the app goes online (Freesound search, Community, a link you type, update checks). No accounts, ads or tracking.
+- Arrives over the air.
+
 ## 0.16.3 — 2026-10-23
 
 - **Solo.** ⋮ on a sound → **Solo**: only that sound plays (even if it was off) and every other card says "Silent (solo)". **Stop solo** in the same menu brings everything back as it was. Solo is not saved in the mix and ends when you leave it or add a sound.
