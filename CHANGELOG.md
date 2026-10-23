@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.19.4 — 2026-10-23
+
+- **Feedback and error log in Settings → About.** **Send feedback or ideas** opens the project's GitHub Discussions; **Share the error log** shares the phone's small error log (error messages only) through the share sheet, so a problem can be diagnosed without a cable.
+- Arrives over the air.
+
 ## 0.19.3 — 2026-10-23
 
 - **Easier to see.** The on/off switches in Settings are now clear in both states (grey track with a light thumb when off, yellow track with a white thumb when on; the on thumb used to be black on black). The empty part of every slider and the round on/off button on a sound when it is off are lighter too.
