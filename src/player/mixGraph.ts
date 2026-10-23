@@ -1,4 +1,5 @@
 import {
+  type AnalyserNode,
   type AudioContext,
   type GainNode,
   type AudioNode,
@@ -6,6 +7,7 @@ import {
   type ConstantSourceNode,
 } from 'react-native-audio-api';
 import { DriftPlan, panLoudnessCurve } from './domain/drift';
+import { peakOf } from './domain/levels';
 import { CLIP_RANGE, softClipCurve, type BusSpec } from './domain/mixPlan';
 
 // The live parts of the mix that sit around the baked clips: Fluctuation
@@ -15,6 +17,8 @@ import { CLIP_RANGE, softClipCurve, type BusSpec } from './domain/mixPlan';
 // The desktop smooths each drift step a little (SoundSource.js: 0.12 s for a
 // sound's volume and pitch, 0.02 s for pan and the buses); a walk with a
 // slower glide than that just uses its own.
+// About 85 ms of audio at 48 kHz: read every 100 ms, no peak slips between reads.
+const METER_SAMPLES = 4096;
 const SOUND_SMOOTHING = 0.12;
 const BUS_SMOOTHING = 0.02;
 
@@ -123,8 +127,14 @@ export class MixBus {
   readonly drifts: ParamDrift[] = [];
   private nodes: AudioNode[] = [];
   private panStage: PanStage | null = null;
+  private ctx: AudioContext;
+  /** The input of the soft limiter (1/CLIP_RANGE of the signal), when there is one. */
+  private limiterIn: GainNode | null = null;
+  private meter: AnalyserNode | null = null;
+  private samples = new Float32Array(METER_SAMPLES);
 
   constructor(ctx: AudioContext, spec: BusSpec | null, out: AudioNode, limit: boolean) {
+    this.ctx = ctx;
     const now = ctx.currentTime;
     this.input = ctx.createGain();
     this.nodes.push(this.input);
@@ -136,6 +146,7 @@ export class MixBus {
       shaper.curve = clipCurve ??= softClipCurve();
       scale.connect(shaper).connect(out);
       this.nodes.push(scale, shaper);
+      this.limiterIn = scale;
       tail = scale;
     }
     if (!spec) {
@@ -191,5 +202,27 @@ export class MixBus {
   dispose() {
     this.panStage?.dispose();
     this.nodes.forEach((n) => n.disconnect());
+  }
+
+  /** The highest peak that reached the limiter since the last call (1 = 0 dBFS,
+   * above -1 dBFS the limiter bends it); 0 for a bus with no limiter. The first
+   * call only starts the meter. */
+  peak(): number {
+    if (!this.limiterIn) return 0;
+    if (!this.meter) {
+      const meter = this.ctx.createAnalyser();
+      meter.fftSize = METER_SAMPLES;
+      meter.smoothingTimeConstant = 0;
+      const silent = this.ctx.createGain();
+      silent.gain.value = 0; // an analyser only runs while it is part of the graph
+      this.limiterIn.connect(meter);
+      meter.connect(silent);
+      silent.connect(this.ctx.destination);
+      this.nodes.push(meter, silent);
+      this.meter = meter;
+      return 0;
+    }
+    this.meter.getFloatTimeDomainData(this.samples);
+    return peakOf(this.samples) * CLIP_RANGE;
   }
 }

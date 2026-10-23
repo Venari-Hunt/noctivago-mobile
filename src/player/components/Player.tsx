@@ -9,6 +9,7 @@ import { BottomSheet } from '../../ui/BottomSheet';
 import { TextPrompt } from '../../ui/TextPrompt';
 import { logError } from '../../errorLog';
 import { clockReport, type ClockSample } from '../domain/clockCheck';
+import { lowerAllVolumes } from '../domain/levels';
 import { minutesUntilClock } from '../domain/sleepTimer';
 import { addGroup, groupChangeNote, groupOfSound, groupsOf, setMember } from '../domain/groupEdit';
 import { decodedMb, HEAVY_MIX_MB, playedVolume, renameSoundAt, setSoundOn, soloGain, soundFile, uniqueName } from '../domain/mixEdit';
@@ -16,6 +17,7 @@ import type { PlayerEngine } from '../engine';
 import { addLibrarySounds, duplicateSound, removeSound, savePreset, type SavedPreset } from '../storage';
 import { AddSoundsSheet } from './AddSoundsSheet';
 import { GroupChips } from './GroupChips';
+import { LevelStrip } from './LevelStrip';
 import { GroupSheet } from './GroupSheet';
 import { ShotSheet } from './ShotSheet';
 import { PresetMenu } from './PresetMenu';
@@ -235,6 +237,14 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
     save(next);
   };
 
+  // The level strip's one-tap fix: every sound lower by the same amount.
+  const lowerAll = (db: number) => {
+    const next = lowerAllVolumes(preset, db);
+    next.sounds.forEach((s, j) => engine.setSoundVolume(soundFile(s, j), soloGain(s, j, solo)));
+    save(next);
+    setNote(`Lowered every sound by ${db} dB.`);
+  };
+
   // Solo: every other sound goes silent, then comes back as it was.
   const soundsAt = (on: number | null) =>
     preset.sounds.forEach((s, j) => engine.setSoundVolume(soundFile(s, j), soloGain(s, j, on)));
@@ -316,6 +326,7 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
         {error && <Text style={shared.error}>{error}</Text>}
         {note && <Text style={styles.note}>{note}</Text>}
       </View>
+      <LevelStrip engine={engine} playing={playing} groupNames={groups.map((g) => g.name)} onLower={lowerAll} />
       <ScrollView style={styles.scroll} contentContainerStyle={styles.sounds}>
         {empty ? (
           <Text style={shared.help}>
