@@ -46,9 +46,10 @@ export function SliderRow({ label, value, min = 0, max = 1, step = 0, text, disa
 
 const styles = StyleSheet.create({
   row: { gap: 2 },
-  // Long names wrap to a second line and push the value under them, never clipped.
-  head: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', columnGap: 12 },
-  label: { color: colors.text, fontSize: 16, flexShrink: 1, flexGrow: 1 },
+  // The name takes the room the value leaves and wraps by word; the value
+  // never takes more than half the row, so a long name is never squeezed.
+  head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 },
+  label: { color: colors.text, fontSize: 16, flex: 1 },
   off: { color: colors.faint },
-  value: { color: colors.faint, fontSize: 14, marginLeft: 'auto' },
+  value: { color: colors.faint, fontSize: 14, maxWidth: '50%', textAlign: 'right' },
 });
