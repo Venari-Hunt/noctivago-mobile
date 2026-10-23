@@ -128,8 +128,7 @@ export class MixBus {
   private nodes: AudioNode[] = [];
   private panStage: PanStage | null = null;
   private ctx: AudioContext;
-  /** The input of the soft limiter (1/CLIP_RANGE of the signal), when there is one. */
-  private limiterIn: GainNode | null = null;
+  /** Reads the level just before the soft limiter (1/CLIP_RANGE of the signal), when there is one. */
   private meter: AnalyserNode | null = null;
   private samples = new Float32Array(METER_SAMPLES);
 
@@ -144,9 +143,14 @@ export class MixBus {
       scale.gain.value = 1 / CLIP_RANGE;
       const shaper = ctx.createWaveShaper();
       shaper.curve = clipCurve ??= softClipCurve();
-      scale.connect(shaper).connect(out);
-      this.nodes.push(scale, shaper);
-      this.limiterIn = scale;
+      // The meter sits in the chain (an analyser passes its input through), not on
+      // a side branch: a branch ending in a silent gain silenced the whole mix.
+      const meter = ctx.createAnalyser();
+      meter.fftSize = METER_SAMPLES;
+      meter.smoothingTimeConstant = 0;
+      scale.connect(meter).connect(shaper).connect(out);
+      this.nodes.push(scale, meter, shaper);
+      this.meter = meter;
       tail = scale;
     }
     if (!spec) {
@@ -204,24 +208,10 @@ export class MixBus {
     this.nodes.forEach((n) => n.disconnect());
   }
 
-  /** The highest peak that reached the limiter since the last call (1 = 0 dBFS,
-   * above -1 dBFS the limiter bends it); 0 for a bus with no limiter. The first
-   * call only starts the meter. */
+  /** The highest peak that reached the limiter in the last ~85 ms (1 = 0 dBFS,
+   * above -1 dBFS the limiter bends it); 0 for a bus with no limiter. */
   peak(): number {
-    if (!this.limiterIn) return 0;
-    if (!this.meter) {
-      const meter = this.ctx.createAnalyser();
-      meter.fftSize = METER_SAMPLES;
-      meter.smoothingTimeConstant = 0;
-      const silent = this.ctx.createGain();
-      silent.gain.value = 0; // an analyser only runs while it is part of the graph
-      this.limiterIn.connect(meter);
-      meter.connect(silent);
-      silent.connect(this.ctx.destination);
-      this.nodes.push(meter, silent);
-      this.meter = meter;
-      return 0;
-    }
+    if (!this.meter) return 0;
     this.meter.getFloatTimeDomainData(this.samples);
     return peakOf(this.samples) * CLIP_RANGE;
   }
