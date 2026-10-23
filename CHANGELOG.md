@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.16.0 — 2026-10-23
+
+- **Play mode on the phone.** Tap ⋮ on a sound → **Play mode…** and pick Loop, Random or Scheduled. Random: the shortest and longest wait between plays (1 second to 1 hour), or fully random. Scheduled: plays at clock times you add (24 h, like 18:30) or every so many minutes. Edits apply right away. Same fields as the PC's Remix, so a shared mix keeps them.
+- Not yet on the phone: per-play pitch, volume, pan, speed and fades for these sounds (the PC settings still apply if the mix came from the PC).
+- Arrives over the air.
+
 ## 0.15.11 — 2026-10-23
 
 - **Fix: sound names broke into one letter per line in 0.15.10.** Sound cards now use the desktop's layout: the name on its own line across the whole card (wrapping if long), then a line with the group and volume or mode, then the on/off button and slider.

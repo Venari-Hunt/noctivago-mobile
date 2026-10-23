@@ -16,6 +16,7 @@ import { addLibrarySounds, duplicateSound, removeSound, savePreset, type SavedPr
 import { AddSoundsSheet } from './AddSoundsSheet';
 import { GroupChips } from './GroupChips';
 import { GroupSheet } from './GroupSheet';
+import { ShotSheet } from './ShotSheet';
 import { PresetMenu } from './PresetMenu';
 import { SleepTimerRow } from './SleepTimerRow';
 import { SoundCard } from './SoundCard';
@@ -54,6 +55,8 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
   const { showPlaybackCheck } = useSettings();
   const [soundMenu, setSoundMenu] = useState<number | null>(null);
   const [groupSheet, setGroupSheet] = useState<number | null>(null);
+  /** The sound whose play mode sheet is open. */
+  const [modeSheet, setModeSheet] = useState<number | null>(null);
   /** A just-made group opens with its sound list already showing. */
   const [pickFirst, setPickFirst] = useState(false);
   /** The sound being renamed (its name dialog is open). */
@@ -184,6 +187,18 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
       fail(e, 'duplicate');
     } finally {
       setAdding(null);
+    }
+  };
+
+  // A new play mode or shot setting: saved, and the sound rebuilt with it
+  // (a shot sound reads its settings when it is built).
+  const reshape = async (next: SavedPreset, i: number) => {
+    save(next);
+    try {
+      engine.removeSound(soundFile(next.sounds[i], i));
+      await engine.addSound(next, i);
+    } catch (e) {
+      fail(e, 'play mode');
     }
   };
 
@@ -363,6 +378,7 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
                 ...(menuSound.volume === DEFAULT_VOLUME
                   ? []
                   : [{ label: 'Reset volume', onPress: () => resetVolume(soundMenu) }]),
+                { label: 'Play mode…', onPress: () => setModeSheet(soundMenu) },
                 { label: 'Rename…', onPress: () => setRenaming(soundMenu) },
                 { label: 'Duplicate', onPress: () => duplicate(soundMenu) },
                 ...groupMenu(soundMenu),
@@ -382,6 +398,7 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
         }}
         onCancel={() => setRenaming(null)}
       />
+      <ShotSheet preset={preset} index={modeSheet} onChange={reshape} onClose={() => setModeSheet(null)} />
       <GroupSheet
         preset={preset}
         index={groupSheet}
