@@ -25,7 +25,7 @@ export function SliderRow({ label, value, min = 0, max = 1, step = 0, text, disa
   return (
     <View style={styles.row}>
       <Pressable style={styles.head} onLongPress={onLongPress} disabled={!onLongPress} accessibilityHint={onLongPress ? 'Hold for options' : undefined}>
-        <Text style={[styles.label, (disabled || dim) && styles.off]} numberOfLines={1}>{label}</Text>
+        <Text style={[styles.label, (disabled || dim) && styles.off]}>{label}</Text>
         <Text style={styles.value}>{text}</Text>
       </Pressable>
       <Slider
@@ -46,8 +46,9 @@ export function SliderRow({ label, value, min = 0, max = 1, step = 0, text, disa
 
 const styles = StyleSheet.create({
   row: { gap: 2 },
-  head: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
-  label: { color: colors.text, fontSize: 16, flexShrink: 1 },
+  // Long names wrap to a second line and push the value under them, never clipped.
+  head: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', columnGap: 12 },
+  label: { color: colors.text, fontSize: 16, flexShrink: 1, flexGrow: 1 },
   off: { color: colors.faint },
-  value: { color: colors.faint, fontSize: 14 },
+  value: { color: colors.faint, fontSize: 14, marginLeft: 'auto' },
 });
