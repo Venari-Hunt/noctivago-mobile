@@ -12,6 +12,8 @@ import { groupBusSpecs, groupIndexOf, loopFade, shotSettings, soundFluctuation, 
 import { syncShot } from './domain/shotPlan';
 import { fadePlan } from './domain/sleepTimer';
 import { MixBus, SoundDrift, type ParamDrift } from './mixGraph';
+import { trimFrames } from './domain/trimEdit';
+import { trimBuffer } from './trim';
 import type { NightEntry } from './domain/nightLog';
 import { recordNight } from './nightLog';
 import { seamlessBuffer } from './seamless';
@@ -129,7 +131,9 @@ export class PlayerEngine {
   // mix). False when the engine was unloaded meanwhile.
   private async addVoice(ctx: AudioContext, preset: SavedPreset, index: number, fadeSeconds = 0): Promise<boolean> {
     const sound = preset.sounds[index];
-    const buffer = await ctx.decodeAudioData(audioUri(preset, index));
+    const decoded = await ctx.decodeAudioData(audioUri(preset, index));
+    // A trim set on the phone (or left by the PC) cuts the clip before anything else uses it.
+    const buffer = trimBuffer(ctx, decoded, trimFrames(preset.manifest, index, decoded.sampleRate, decoded.length));
     if (this.ctx !== ctx || !this.routes) return false;
     const gain = ctx.createGain();
     const volume = playedVolume(sound);
