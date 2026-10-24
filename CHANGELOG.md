@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.19.15 — 2026-10-24
+
+- **Try again button when offline.** Browse Sounds and Community now show a Try again button under a failed search or list, instead of telling you to tap search on the keyboard.
+- Arrives over the air.
+
 ## 0.19.14 — 2026-10-24
 
 - **Back up and restore settings.** Settings has a Back up section: save your settings to a small file and share it anywhere, or load one saved earlier (for example from another phone). Mixes and sounds are not included.
