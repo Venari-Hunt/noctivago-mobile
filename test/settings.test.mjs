@@ -9,7 +9,7 @@ test('no saved file gives the defaults', () => {
 });
 
 test('saved values come back', () => {
-  const saved = { autoInstallUpdates: false, sleepFadeSeconds: 300, sleepAutoMinutes: 45, newSoundVolume: 0.4, browseSounds: false, community: false, showPlaybackCheck: true, softLimiter: false, groupBySoundGroup: true, soundMeters: true };
+  const saved = { autoInstallUpdates: false, sleepFadeSeconds: 300, sleepAutoMinutes: 45, newSoundVolume: 0.4, browseSounds: false, community: false, showPlaybackCheck: true, softLimiter: false, groupBySoundGroup: true, soundMeters: true, welcomeSeen: true };
   assert.deepEqual(parseSettings(saved), saved);
 });
 
