@@ -1,8 +1,13 @@
 # Changelog
 
+## 0.19.10 — 2026-10-24
+
+- **Settings: the whole timer row is visible.** The row for the timer started on every Play slid sideways with no hint that it did, so 1 h 30 and 2 h sat out of sight. It now wraps like the other pill rows.
+- Arrives over the air.
+
 ## 0.19.9 — 2026-10-24
 
-- **Settings: every timer choice is reachable.** The row for the timer started on every Play ran off the right edge (1 h 30 and 2 h were cut off and the row did not scroll). Pill rows now wrap onto a second line instead.
+- Pill rows (sort order, modes, timers) wrap onto a second line when they are too long for the screen.
 - Arrives over the air.
 
 ## 0.19.8 — 2026-10-24

@@ -65,13 +65,11 @@ export function SettingsScreen({ update, onBack }: Props) {
             onChange={(v) => setSettings({ sleepFadeSeconds: Number(v) })}
           />
           <Text style={styles.label}>Start a timer every time you press Play</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <Choice
-              options={AUTO_SLEEP_CHOICES.map((m) => ({ value: String(m), label: m === 0 ? 'Off' : presetLabel(m) }))}
-              value={String(s.sleepAutoMinutes)}
-              onChange={(v) => setSettings({ sleepAutoMinutes: Number(v) })}
-            />
-          </ScrollView>
+          <Choice
+            options={AUTO_SLEEP_CHOICES.map((m) => ({ value: String(m), label: m === 0 ? 'Off' : presetLabel(m) }))}
+            value={String(s.sleepAutoMinutes)}
+            onChange={(v) => setSettings({ sleepAutoMinutes: Number(v) })}
+          />
         </Section>
 
         <Section title="Player">
