@@ -7,11 +7,11 @@ import { colors } from './theme';
 // list. Each switch is a setting, so it stays on between mixes.
 export function Troubleshooting() {
   const { soundMeters, showPlaybackCheck } = useSettings();
-  const [open, setOpen] = useState(soundMeters || showPlaybackCheck);
+  const [open, setOpen] = useState(false);
   return (
     <View style={styles.box}>
       <Pressable style={styles.head} onPress={() => setOpen(!open)} accessibilityRole="button" accessibilityState={{ expanded: open }}>
-        <Text style={styles.title}>Troubleshooting</Text>
+        <Text style={styles.title}>Troubleshooting{soundMeters || showPlaybackCheck ? ' · on' : ''}</Text>
         <Text style={styles.chevron}>{open ? '▴' : '▾'}</Text>
       </Pressable>
       {open && (
@@ -41,7 +41,7 @@ function Row({ label, hint, value, onChange }: { label: string; hint: string; va
         <Text style={styles.label}>{label}</Text>
         <Text style={styles.hint}>{hint}</Text>
       </View>
-      <Switch value={value} onValueChange={onChange} accessibilityLabel={label} trackColor={{ true: colors.accent }} />
+      <Switch value={value} onValueChange={onChange} accessibilityLabel={label} trackColor={{ false: colors.line, true: colors.accent }} thumbColor={value ? '#fff' : '#d0d0d0'} />
     </View>
   );
 }

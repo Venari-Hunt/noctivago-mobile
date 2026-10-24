@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.19.8 — 2026-10-24
+
+- **Troubleshooting stays folded.** The panel above the sound list now always opens closed (its title says "· on" when a tool is running), so the sounds are not pushed down the screen. Its switches use the app colors, and the sound level bars blend into the card while nothing plays.
+- Arrives over the air.
+
 ## 0.19.7 — 2026-10-24
 
 - **Easier to see.** The app now uses dark gray surfaces instead of pure black, with lighter gray for raised parts. Small gray text, outlines, slider tracks and the empty part of the level bars all pass the 4.5:1 text and 3:1 control contrast rules (before: small text 4.3:1, level bar track 1.1:1, outlines 2.8:1).
