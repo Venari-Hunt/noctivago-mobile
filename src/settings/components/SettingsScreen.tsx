@@ -128,6 +128,7 @@ export function SettingsScreen({ update, onBack }: Props) {
         </Section>
 
         <Section title="About">
+          <Text style={shared.help}>Noctívago {update.label}. Made by Venari.</Text>
           <Link text="What's new" url={`${REPO}/blob/master/CHANGELOG.md`} />
           <Link text="Send feedback or ideas" url={DISCUSSIONS} />
           <Pressable onPress={() => Share.share({ message: `Noctívago ${update.label}
@@ -137,6 +138,9 @@ ${readErrorLog()}` }).catch(() => {})} accessibilityRole="button">
           <Text style={shared.help}>The error log holds only error messages from this phone. Share it when something goes wrong so it can be fixed.</Text>
           <Link text="Source code and license (Apache 2.0)" url={REPO} />
           <Text style={shared.help}>Freesound sounds keep their author and license; you'll see them under each sound.</Text>
+          <Text style={shared.help}>
+            Built with Expo, React Native, react-native-audio-api, fflate and @react-native-community/slider, all MIT licensed.
+          </Text>
         </Section>
       </ScrollView>
     </View>
