@@ -13,9 +13,9 @@ import { clockReport, type ClockSample } from '../domain/clockCheck';
 import { lowerAllVolumes } from '../domain/levels';
 import { minutesUntilClock } from '../domain/sleepTimer';
 import { addGroup, groupChangeNote, groupOfSound, groupsOf, sectionsOf, setMember } from '../domain/groupEdit';
-import { decodedMb, HEAVY_MIX_MB, playedVolume, renameSoundAt, setSoundOn, soloGain, soundFile, uniqueName } from '../domain/mixEdit';
+import { decodedMb, HEAVY_MIX_MB, holdsSound, playedVolume, renameSoundAt, setSoundOn, soloGain, soundFile, uniqueName } from '../domain/mixEdit';
 import type { PlayerEngine } from '../engine';
-import { addLibrarySounds, duplicateSound, removeSound, savePreset, type SavedPreset } from '../storage';
+import { addLibrarySounds, copySoundToMix, duplicateSound, listPresets, removeSound, savePreset, type SavedPreset } from '../storage';
 import { AddSoundsSheet } from './AddSoundsSheet';
 import { GroupChips } from './GroupChips';
 import { LevelStrip } from './LevelStrip';
@@ -50,6 +50,8 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
   const [loading, setLoading] = useState<string | null>('Loading sounds…');
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
+  /** The sound whose "Add to a mix" list is open. */
+  const [mixesFor, setMixesFor] = useState<number | null>(null);
   const [playing, setPlaying] = useState(false);
   const [run, setRun] = useState<Run | null>(null);
   const [sleepEndsAt, setSleepEndsAt] = useState<number | null>(null);
@@ -197,6 +199,20 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
       setNote(`Added "${next.sounds[next.sounds.length - 1].name}".`);
     } catch (e) {
       fail(e, 'duplicate');
+    } finally {
+      setAdding(null);
+    }
+  };
+
+  // A copy of the sound, with its settings, in another mix.
+  const addToMix = async (i: number, target: SavedPreset) => {
+    if (adding) return;
+    setAdding(`Adding to "${target.name}"…`);
+    try {
+      await copySoundToMix(preset, i, target);
+      setNote(`Added "${preset.sounds[i].name}" to "${target.name}".`);
+    } catch (e) {
+      fail(e, 'add to mix');
     } finally {
       setAdding(null);
     }
@@ -462,11 +478,26 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
                 { label: 'Sound settings…', onPress: () => setModeSheet(soundMenu) },
                 { label: 'Rename…', onPress: () => setRenaming(soundMenu) },
                 { label: 'Duplicate', onPress: () => duplicate(soundMenu) },
+                { label: 'Add to a mix…', onPress: () => setMixesFor(soundMenu) },
                 ...groupMenu(soundMenu),
                 { label: 'Remove from mix', destructive: true, onPress: () => confirmRemove(soundMenu) },
               ]
         }
         onClose={() => setSoundMenu(null)}
+      />
+      <ActionMenu
+        title={mixesFor === null ? null : 'Add to a mix'}
+        actions={
+          mixesFor === null
+            ? []
+            : listPresets()
+                .filter((p) => p.id !== preset.id)
+                .map((p) => {
+                  const has = holdsSound(p, preset.sounds[mixesFor].name);
+                  return { label: has ? `${p.name} (already has it)` : p.name, onPress: () => addToMix(mixesFor, p) };
+                })
+        }
+        onClose={() => setMixesFor(null)}
       />
       <TextPrompt
         title={renaming === null ? null : 'Rename sound'}
