@@ -93,6 +93,11 @@ export function CommunityList({ onOpen }: Props) {
       />
       <Choice options={SORTS} value={sort} onChange={changeSort} />
       {error && <Text style={shared.error}>{error}</Text>}
+      {error && !loading && (
+        <Pressable style={shared.secondary} onPress={() => load(1)} accessibilityRole="button">
+          <Text style={shared.secondaryText}>Try again</Text>
+        </Pressable>
+      )}
       <FlatList
         data={results}
         keyExtractor={(p) => p.id}
@@ -101,7 +106,7 @@ export function CommunityList({ onOpen }: Props) {
         ListEmptyComponent={
           loading ? undefined : (
             <Text style={shared.help}>
-              {error ? 'Tap search on the keyboard to try again.' : 'No presets found. People share them from the PC app (Community tab).'}
+              {error ? 'Nothing loaded yet.' : 'No presets found. People share them from the PC app (Community tab).'}
             </Text>
           )
         }

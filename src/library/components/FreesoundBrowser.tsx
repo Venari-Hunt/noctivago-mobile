@@ -107,6 +107,11 @@ export function FreesoundBrowser({ preview, onClose, onAdded }: Props) {
           autoFocus
         />
         {note && <Text style={note.error ? shared.error : styles.note}>{note.text}</Text>}
+        {note?.error && !loading && query.trim() !== '' && (
+          <Pressable style={shared.secondary} onPress={submit} accessibilityRole="button">
+            <Text style={shared.secondaryText}>Try again</Text>
+          </Pressable>
+        )}
         <FlatList
           data={results}
           keyExtractor={(r) => String(r.id)}
