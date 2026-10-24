@@ -162,3 +162,23 @@ test('soloGain plays only the soloed sound, even one that is off', () => {
   assert.equal(soloGain(a, 0, 1), 0);
   assert.equal(soloGain(b, 1, 1), 0.8);
 });
+
+import { copySoundInto, holdsSound } from '../src/player/domain/mixEdit.ts';
+
+test('copySoundInto adds a sound with its settings to another mix, ungrouped', () => {
+  const from = imported();
+  const target = { ...imported(), sounds: [], manifest: emptyManifest('Other') };
+  const next = copySoundInto(target, from, 1, 'Gull.opus');
+  assert.equal(next.sounds.length, 1);
+  assert.equal(next.sounds[0].name, 'Gull');
+  assert.equal(next.sounds[0].file, 'Gull.opus');
+  assert.equal(next.sounds[0].volume, 0.4);
+  assert.equal(next.sounds[0].playMode, 'scatter');
+  assert.equal(from.sounds.length, 3);
+  assert.equal(copySoundInto(target, from, 9, 'x.opus'), target);
+});
+
+test('holdsSound matches by name', () => {
+  assert.equal(holdsSound(imported(), 'Gull'), true);
+  assert.equal(holdsSound(imported(), 'Nope'), false);
+});

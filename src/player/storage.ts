@@ -5,6 +5,7 @@ import { addFromMix, soundAudioUri } from '../library/storage';
 import {
   appendSound,
   audioFileName,
+  copySoundInto,
   duplicateSoundAt,
   emptyManifest,
   removeSoundAt,
@@ -131,6 +132,21 @@ export async function duplicateSound(preset: SavedPreset, index: number): Promis
   const file = audioFileName(`${from.name} copy`, ext, pinned.sounds.map((s, i) => soundFile(s, i)));
   await new File(dir, source).copy(new File(dir, file));
   const next = duplicateSoundAt(pinned, index, file);
+  savePreset(next);
+  return next;
+}
+
+/** Puts a copy of sound `index` of `from` (own audio file) into another mix. */
+export async function copySoundToMix(from: SavedPreset, index: number, target: SavedPreset): Promise<SavedPreset> {
+  const src = withFiles(from);
+  const pinned = withFiles(target);
+  const source = soundFile(src.sounds[index], index);
+  const ext = source.includes('.') ? source.slice(source.lastIndexOf('.') + 1) : 'ogg';
+  const dir = audioDir(pinned);
+  if (!dir.exists) dir.create({ intermediates: true });
+  const file = audioFileName(src.sounds[index].name, ext, pinned.sounds.map((s, i) => soundFile(s, i)));
+  await new File(audioDir(src), source).copy(new File(dir, file));
+  const next = copySoundInto(pinned, src, index, file);
   savePreset(next);
   return next;
 }

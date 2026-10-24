@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.19.11 — 2026-10-24
+
+- **Add a sound to another mix.** The sound menu has "Add to a mix…": pick a mix and the sound goes in as a copy with its volume, mode and shot settings, ungrouped. Mixes that already hold a sound with that name say so.
+- Arrives over the air.
+
 ## 0.19.10 — 2026-10-24
 
 - **Settings: the whole timer row is visible.** The row for the timer started on every Play slid sideways with no hint that it did, so 1 h 30 and 2 h sat out of sight. It now wraps like the other pill rows.
