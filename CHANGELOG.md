@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.19.12 — 2026-10-24
+
+- **About shows the version and credits.** The About section now says which version you run, who made it, and which open-source libraries it is built with (all MIT).
+- Arrives over the air.
+
 ## 0.19.11 — 2026-10-24
 
 - **Add a sound to another mix.** The sound menu has "Add to a mix…": pick a mix and the sound goes in as a copy with its volume, mode and shot settings, ungrouped. Mixes that already hold a sound with that name say so.
