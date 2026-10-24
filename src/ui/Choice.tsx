@@ -31,7 +31,8 @@ export function Choice<T extends string>({ options, value, onChange, big }: Prop
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', gap: 8 },
+  // Wraps: a row too long for the screen goes onto a second line, never off the edge.
+  row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   pill: { backgroundColor: colors.card, borderRadius: 999, paddingVertical: 8, paddingHorizontal: 14 },
   big: { flex: 1, alignItems: 'center', paddingVertical: 12 },
   on: { backgroundColor: colors.accent },
