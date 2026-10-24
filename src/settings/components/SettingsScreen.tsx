@@ -1,13 +1,36 @@
+import * as DocumentPicker from 'expo-document-picker';
+import { File, Paths } from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 import { useEffect, useState } from 'react';
-import { BackHandler, Linking, Pressable, Share, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert, BackHandler, Linking, Pressable, Share, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { readErrorLog } from '../../errorLog';
 import { colors, shared } from '../../player/components/theme';
 import { presetLabel } from '../../player/domain/sleepTimer';
 import { Choice } from '../../ui/Choice';
 import { SliderRow } from '../../ui/SliderRow';
 import type { UpdateState } from '../../updates/useAutoUpdate';
-import { AUTO_SLEEP_CHOICES, FADE_CHOICES, fadeLabel } from '../domain/settings';
-import { setSettings, useSettings } from '../store';
+import { AUTO_SLEEP_CHOICES, FADE_CHOICES, fadeLabel, parseSettingsFile } from '../domain/settings';
+import { getSettings, setSettings, useSettings } from '../store';
+
+// Settings only (not mixes or sounds): a small file to keep or move to another phone.
+async function backUpSettings() {
+  const file = new File(Paths.cache, 'noctivago-settings.json');
+  file.create({ overwrite: true });
+  file.write(JSON.stringify({ ...getSettings(), welcomeSeen: undefined }, null, 2));
+  await Sharing.shareAsync(file.uri, { mimeType: 'application/json', dialogTitle: 'Back up settings' });
+}
+
+async function restoreSettings() {
+  const picked = await DocumentPicker.getDocumentAsync({ type: '*/*', copyToCacheDirectory: true });
+  if (picked.canceled) return;
+  const restored = parseSettingsFile(await new File(picked.assets[0].uri).text());
+  if (!restored) {
+    Alert.alert('Not a settings file', 'Pick a file saved with Back up settings.');
+    return;
+  }
+  setSettings({ ...restored, welcomeSeen: getSettings().welcomeSeen });
+  Alert.alert('Settings restored', 'Your settings are back.');
+}
 
 const REPO = 'https://github.com/Venari-Hunt/noctivago-mobile';
 const DISCUSSIONS = 'https://github.com/Venari-Hunt/Noctivago/discussions';
@@ -114,6 +137,16 @@ export function SettingsScreen({ update, onBack }: Props) {
             value={s.community}
             onChange={(v) => setSettings({ community: v })}
           />
+        </Section>
+
+        <Section title="Back up">
+          <Text style={shared.help}>Save your settings to a small file, or load one saved earlier (say, from another phone). Mixes and sounds are not included.</Text>
+          <Pressable onPress={() => backUpSettings().catch(() => Alert.alert("Couldn't back up", 'Sharing the file failed.'))} accessibilityRole="button">
+            <Text style={styles.link}>Back up settings</Text>
+          </Pressable>
+          <Pressable onPress={() => restoreSettings().catch(() => Alert.alert("Couldn't restore", 'That file could not be read.'))} accessibilityRole="button">
+            <Text style={styles.link}>Restore settings</Text>
+          </Pressable>
         </Section>
 
         <Section title="Privacy">

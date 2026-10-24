@@ -48,6 +48,17 @@ export function fadeLabel(seconds: number): string {
   return seconds < 60 ? `${seconds} s` : `${seconds / 60} min`;
 }
 
+/** A backup file's text as settings, or null when it is not a settings file.
+ * Unknown or broken values fall back to their defaults. */
+export function parseSettingsFile(text: string): AppSettings | null {
+  try {
+    const raw: unknown = JSON.parse(text);
+    return raw && typeof raw === 'object' && !Array.isArray(raw) ? parseSettings(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
 export function parseSettings(raw: unknown): AppSettings {
   const bag = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
   const bool = (key: keyof AppSettings) =>

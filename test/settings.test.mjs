@@ -39,3 +39,14 @@ test('the soft limiter is on unless turned off', () => {
   assert.equal(parseSettings({ softLimiter: false }).softLimiter, false);
   assert.equal(parseSettings({ softLimiter: 'off' }).softLimiter, true);
 });
+
+import { parseSettingsFile } from '../src/settings/domain/settings.ts';
+
+test('parseSettingsFile reads a backup and rejects anything else', () => {
+  assert.equal(parseSettingsFile('junk'), null);
+  assert.equal(parseSettingsFile('[1,2]'), null);
+  assert.equal(parseSettingsFile('null'), null);
+  assert.equal(parseSettingsFile('{"sleepFadeSeconds":60,"softLimiter":false}').sleepFadeSeconds, 60);
+  assert.equal(parseSettingsFile('{"sleepFadeSeconds":60,"softLimiter":false}').softLimiter, false);
+  assert.equal(parseSettingsFile('{"sleepFadeSeconds":7}').sleepFadeSeconds, DEFAULT_SETTINGS.sleepFadeSeconds);
+});

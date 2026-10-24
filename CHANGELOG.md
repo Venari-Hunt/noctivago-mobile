@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.19.14 — 2026-10-24
+
+- **Back up and restore settings.** Settings has a Back up section: save your settings to a small file and share it anywhere, or load one saved earlier (for example from another phone). Mixes and sounds are not included.
+- Arrives over the air.
+
 ## 0.19.13 — 2026-10-24
 
 - **A welcome on the first launch.** A fresh install (no mixes yet) opens a short welcome: add sounds, mix and play, fall asleep. One tap on Get started and it never shows again. Anyone who already has a mix does not see it.
