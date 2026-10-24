@@ -101,7 +101,7 @@ export function LevelStrip({ engine, playing, groupNames, onLower }: Props) {
 const styles = StyleSheet.create({
   wrap: { gap: 8, paddingHorizontal: 24, paddingBottom: 8 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  track: { flex: 1, height: 6, borderRadius: 3, backgroundColor: colors.raised, overflow: 'hidden' },
+  track: { flex: 1, height: 6, borderRadius: 3, backgroundColor: colors.track, overflow: 'hidden' },
   fill: { height: 6, width: '100%' },
   tick: { position: 'absolute', top: 0, width: 2, height: 6, backgroundColor: colors.faint },
   level: { color: colors.faint, fontSize: 13, minWidth: 64, textAlign: 'right' },
