@@ -74,6 +74,6 @@ export function SoundMeter({ engine, soundKey, playing }: Props) {
 }
 
 const styles = StyleSheet.create({
-  track: { height: 4, borderRadius: 2, backgroundColor: colors.raised, overflow: 'hidden' },
+  track: { height: 4, borderRadius: 2, backgroundColor: colors.track, overflow: 'hidden' },
   fill: { height: 4, width: '100%' },
 });

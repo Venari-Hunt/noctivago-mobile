@@ -1,15 +1,20 @@
 import { StyleSheet } from 'react-native';
 
+// Dark gray surfaces, never pure black; a lighter surface sits higher
+// (docs/design-practices.md C6). Text is at least 4.5:1 on every surface
+// (faint 5.5:1 on raised), outlines and empty tracks at least 3:1 on page and cards.
 export const colors = {
-  page: '#000',
-  card: '#0d0d0d',
-  raised: '#1a1a1a',
+  page: '#121212',
+  card: '#1e1e1e',
+  raised: '#2c2c2c',
   accent: '#ffc933',
   text: '#fff',
-  dim: '#bbb',
-  faint: '#777',
-  /** Outlines and empty tracks: visible on the black page and the dark cards. */
-  line: '#5a5a5a',
+  dim: '#c8c8c8',
+  faint: '#a3a3a3',
+  /** Outlines of controls: 3.9:1 on cards. */
+  line: '#7a7a7a',
+  /** The empty part of a level bar: 3.3:1 on cards. */
+  track: '#6e6e6e',
   danger: '#ff6b6b',
 };
 

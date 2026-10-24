@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.19.7 — 2026-10-24
+
+- **Easier to see.** The app now uses dark gray surfaces instead of pure black, with lighter gray for raised parts. Small gray text, outlines, slider tracks and the empty part of the level bars all pass the 4.5:1 text and 3:1 control contrast rules (before: small text 4.3:1, level bar track 1.1:1, outlines 2.8:1).
+- Arrives over the air.
+
 ## 0.19.6 — 2026-10-23
 
 - **Troubleshooting panel and per-sound level meters.** A folded **Troubleshooting** row sits above the sound list in a mix. Open it to switch on a **level bar under every sound's name** (red when its peak nears the limiter) and the **Playback check** line (also in Settings). Both are remembered. Each sound now passes through a level reader on the way to its group; it only reads while the switch is on.
