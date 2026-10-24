@@ -10,10 +10,11 @@ import { addFiles } from './src/library/storage';
 import { Player } from './src/player/components/Player';
 import { PlayerEngine } from './src/player/engine';
 import { printNightLog } from './src/player/nightLog';
-import { addOldMixesToLibrary, importFromUri, type SavedPreset } from './src/player/storage';
+import { addOldMixesToLibrary, importFromUri, listPresets, type SavedPreset } from './src/player/storage';
 import { useIncomingFiles } from './src/player/useIncomingFiles';
+import { Welcome } from './src/home/components/Welcome';
 import { SettingsScreen } from './src/settings/components/SettingsScreen';
-import { useSettings } from './src/settings/store';
+import { setSettings, useSettings } from './src/settings/store';
 import { useAutoUpdate } from './src/updates/useAutoUpdate';
 
 // Three screens, so plain state instead of a router: home (Mixes, Sounds
@@ -28,7 +29,10 @@ export default function App() {
   const [libraryVersion, setLibraryVersion] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const update = useAutoUpdate(playing, useSettings().autoInstallUpdates);
+  const settings = useSettings();
+  // Only a fresh install sees the welcome: anyone with a mix already knows the app.
+  const [noMixesAtStart] = useState(() => listPresets().length === 0);
+  const update = useAutoUpdate(playing, settings.autoInstallUpdates);
   // Hands the saved night log to `adb logcat` (scripts/night-report.mjs).
   useEffect(printNightLog, []);
   // Same for errors (src/errorLog.ts): `adb logcat | grep errorlog`.
@@ -67,7 +71,9 @@ export default function App() {
 
   return (
     <>
-      {open ? (
+      {noMixesAtStart && !settings.welcomeSeen && !open ? (
+        <Welcome onDone={() => setSettings({ welcomeSeen: true })} />
+      ) : open ? (
         <Player key={open.id} engine={engine.current} initial={open} onPlayingChange={setPlaying} onBack={() => setOpen(null)} />
       ) : settingsOpen ? (
         <SettingsScreen update={update} onBack={() => setSettingsOpen(false)} />

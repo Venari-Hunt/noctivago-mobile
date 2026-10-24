@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.19.13 — 2026-10-24
+
+- **A welcome on the first launch.** A fresh install (no mixes yet) opens a short welcome: add sounds, mix and play, fall asleep. One tap on Get started and it never shows again. Anyone who already has a mix does not see it.
+- Arrives over the air.
+
 ## 0.19.12 — 2026-10-24
 
 - **About shows the version and credits.** The About section now says which version you run, who made it, and which open-source libraries it is built with (all MIT).
