@@ -67,7 +67,7 @@ export function SoundMeter({ engine, soundKey, playing }: Props) {
   // The fill is full width, slid left by the part not lit (a transform, so it runs natively).
   const slide = level.interpolate({ inputRange: [0, 1], outputRange: [-width, 0] });
   return (
-    <View style={styles.track} onLayout={(e) => setWidth(e.nativeEvent.layout.width)} accessibilityLabel="Sound level">
+    <View style={[styles.track, !playing && styles.idle]} onLayout={(e) => setWidth(e.nativeEvent.layout.width)} accessibilityLabel="Sound level">
       <Animated.View style={[styles.fill, { backgroundColor: hot ? RED : colors.accent, transform: [{ translateX: slide }] }]} />
     </View>
   );
@@ -75,5 +75,7 @@ export function SoundMeter({ engine, soundKey, playing }: Props) {
 
 const styles = StyleSheet.create({
   track: { height: 4, borderRadius: 2, backgroundColor: colors.track, overflow: 'hidden' },
+  // Not playing: the empty track fades into the card instead of reading as a divider.
+  idle: { backgroundColor: colors.raised },
   fill: { height: 4, width: '100%' },
 });
