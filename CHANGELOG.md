@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.19.16 — 2026-10-25
+
+- **Sound menu: "Mixes…" adds and removes.** The old "Add to a mix…" is now "Mixes…": mixes that hold the sound show a check mark. Tap one without it to add a copy, tap one with it to remove it from that mix (asks first; the mix you are playing is not listed).
+- Arrives over the air.
+
 ## 0.19.15 — 2026-10-24
 
 - **Try again button when offline.** Browse Sounds and Community now show a Try again button under a failed search or list, instead of telling you to tap search on the keyboard.

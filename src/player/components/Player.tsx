@@ -13,7 +13,7 @@ import { clockReport, type ClockSample } from '../domain/clockCheck';
 import { lowerAllVolumes } from '../domain/levels';
 import { minutesUntilClock } from '../domain/sleepTimer';
 import { addGroup, groupChangeNote, groupOfSound, groupsOf, sectionsOf, setMember } from '../domain/groupEdit';
-import { decodedMb, HEAVY_MIX_MB, holdsSound, playedVolume, renameSoundAt, setSoundOn, soloGain, soundFile, uniqueName } from '../domain/mixEdit';
+import { decodedMb, HEAVY_MIX_MB, holdsSound, playedVolume, soundIndexByName, renameSoundAt, setSoundOn, soloGain, soundFile, uniqueName } from '../domain/mixEdit';
 import type { PlayerEngine } from '../engine';
 import { addLibrarySounds, copySoundToMix, duplicateSound, listPresets, removeSound, savePreset, type SavedPreset } from '../storage';
 import { AddSoundsSheet } from './AddSoundsSheet';
@@ -50,7 +50,7 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
   const [loading, setLoading] = useState<string | null>('Loading sounds…');
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
-  /** The sound whose "Add to a mix" list is open. */
+  /** The sound whose "Mixes" list is open. */
   const [mixesFor, setMixesFor] = useState<number | null>(null);
   const [playing, setPlaying] = useState(false);
   const [run, setRun] = useState<Run | null>(null);
@@ -216,6 +216,27 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
     } finally {
       setAdding(null);
     }
+  };
+
+  // Takes the sound (matched by name) out of another mix, after a confirm.
+  const confirmRemoveFromMix = (i: number, target: SavedPreset) => {
+    const name = preset.sounds[i].name;
+    Alert.alert(`Remove "${name}" from "${target.name}"?`, 'This mix keeps its copy.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Remove',
+        style: 'destructive',
+        onPress: () => {
+          try {
+            const at = soundIndexByName(target, name);
+            if (at >= 0) removeSound(target, at);
+            setNote(`Removed "${name}" from "${target.name}".`);
+          } catch (e) {
+            fail(e, 'remove from mix');
+          }
+        },
+      },
+    ]);
   };
 
   // A new play mode or shot setting: saved, and the sound rebuilt with it
@@ -478,7 +499,7 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
                 { label: 'Sound settings…', onPress: () => setModeSheet(soundMenu) },
                 { label: 'Rename…', onPress: () => setRenaming(soundMenu) },
                 { label: 'Duplicate', onPress: () => duplicate(soundMenu) },
-                { label: 'Add to a mix…', onPress: () => setMixesFor(soundMenu) },
+                { label: 'Mixes…', onPress: () => setMixesFor(soundMenu) },
                 ...groupMenu(soundMenu),
                 { label: 'Remove from mix', destructive: true, onPress: () => confirmRemove(soundMenu) },
               ]
@@ -486,7 +507,7 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
         onClose={() => setSoundMenu(null)}
       />
       <ActionMenu
-        title={mixesFor === null ? null : 'Add to a mix'}
+        title={mixesFor === null ? null : 'In which mixes? Tap to add or remove'}
         actions={
           mixesFor === null
             ? []
@@ -494,7 +515,11 @@ export function Player({ engine, initial, onPlayingChange, onBack }: Props) {
                 .filter((p) => p.id !== preset.id)
                 .map((p) => {
                   const has = holdsSound(p, preset.sounds[mixesFor].name);
-                  return { label: has ? `${p.name} (already has it)` : p.name, onPress: () => addToMix(mixesFor, p) };
+                  return {
+                    label: has ? `✓ ${p.name}` : p.name,
+                    destructive: has,
+                    onPress: () => (has ? confirmRemoveFromMix(mixesFor, p) : addToMix(mixesFor, p)),
+                  };
                 })
         }
         onClose={() => setMixesFor(null)}
