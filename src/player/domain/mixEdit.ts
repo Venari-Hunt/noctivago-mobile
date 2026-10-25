@@ -127,6 +127,11 @@ export function copySoundInto<T extends PhonePreset>(target: T, from: PhonePrese
   };
 }
 
+/** Index of the first sound in the mix with this name, or -1. */
+export function soundIndexByName(preset: PhonePreset, name: string): number {
+  return preset.sounds.findIndex((s) => s.name === name);
+}
+
 /** Whether the mix already holds a sound with this name. */
 export function holdsSound(preset: PhonePreset, name: string): boolean {
   return preset.sounds.some((s) => s.name === name);

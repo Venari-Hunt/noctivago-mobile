@@ -178,6 +178,13 @@ test('copySoundInto adds a sound with its settings to another mix, ungrouped', (
   assert.equal(copySoundInto(target, from, 9, 'x.opus'), target);
 });
 
+import { soundIndexByName } from '../src/player/domain/mixEdit.ts';
+
+test('soundIndexByName finds a sound by name, -1 when absent', () => {
+  assert.equal(soundIndexByName(imported(), 'Gull'), 1);
+  assert.equal(soundIndexByName(imported(), 'Nope'), -1);
+});
+
 test('holdsSound matches by name', () => {
   assert.equal(holdsSound(imported(), 'Gull'), true);
   assert.equal(holdsSound(imported(), 'Nope'), false);
