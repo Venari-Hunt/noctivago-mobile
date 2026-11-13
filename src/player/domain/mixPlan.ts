@@ -22,6 +22,8 @@ export type BusSpec = {
   echo: { delaySeconds: number; taps: number[] } | null;
   /** Bus drift: volume (and pan, for a group). */
   drift: { volume?: unknown; pan?: unknown };
+  /** Fixed left/right placement of a Sound Group, -1..1 (0 = centered). */
+  pan: number;
 };
 
 // Repeats stop once they are 60 dB down, or after this many.
@@ -85,7 +87,7 @@ export function soundFilterSpec(manifest: Bag, index: number): BusSpec | null {
 }
 
 export function groupBusSpecs(manifest: Bag): (BusSpec | null)[] {
-  return groups(manifest).map((g) => busSpec(g.filters, busFluctuation(g.filters?.fluctuation ?? null) ?? {}));
+  return groups(manifest).map((g) => busSpec(g.filters, busFluctuation(g.filters?.fluctuation ?? null) ?? {}, groupPan(g.filters)));
 }
 
 export function wholeMixSpec(manifest: Bag): BusSpec | null {
@@ -101,7 +103,12 @@ export function wholeMixFadeIn(manifest: Bag): number {
 }
 
 // Null when the bus would change nothing, so the phone builds no nodes.
-export function busSpec(filters: Bag | null, drift: BusSpec['drift']): BusSpec | null {
+/** A group's fixed pan from its filters (desktop group pan, -1..1). */
+function groupPan(filters: Bag | null | undefined): number {
+  return Math.max(-1, Math.min(1, num(filters?.pan, 0)));
+}
+
+export function busSpec(filters: Bag | null, drift: BusSpec['drift'], pan = 0): BusSpec | null {
   const f = filters ?? {};
   const stages: BiquadStage[] = [];
   const highpass = num(f.highpassHz, 0);
@@ -118,8 +125,8 @@ export function busSpec(filters: Bag | null, drift: BusSpec['drift']): BusSpec |
   const gainDb = num(f.gainDb, 0);
   const echo = echoTaps(num(f.echoDelayMs, 0) / 1000, num(f.echoDecay, 0));
   const hasDrift = Object.values(drift).some((a) => (a as Bag | undefined)?.enabled);
-  if (stages.length === 0 && gainDb === 0 && !echo && !hasDrift) return null;
-  return { stages, gain: gainDb ? Math.pow(10, gainDb / 20) : 1, echo, drift };
+  if (stages.length === 0 && gainDb === 0 && !echo && !hasDrift && pan === 0) return null;
+  return { stages, gain: gainDb ? Math.pow(10, gainDb / 20) : 1, echo, drift, pan };
 }
 
 export function echoTaps(delaySeconds: number, decay: number): BusSpec['echo'] {

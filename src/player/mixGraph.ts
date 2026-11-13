@@ -130,6 +130,8 @@ export class MixBus {
   readonly drifts: ParamDrift[] = [];
   private nodes: AudioNode[] = [];
   private panStage: PanStage | null = null;
+  /** A group's fixed placement, before the pan drift stage (the desktop's two-stage shape). */
+  private staticPan: PanStage | null = null;
   private ctx: AudioContext;
   /** Reads the level just before the soft limiter (1/CLIP_RANGE of the signal), when there is one. */
   private meter: AnalyserNode | null = null;
@@ -166,6 +168,12 @@ export class MixBus {
       this.panStage.output.connect(tail);
       this.drifts.push(new ParamDrift(this.panStage.pan, pan, 1, BUS_SMOOTHING, now));
       tail = this.panStage.input;
+    }
+    if (spec.pan !== 0) {
+      this.staticPan = new PanStage(ctx);
+      this.staticPan.pan.value = spec.pan;
+      this.staticPan.output.connect(tail);
+      tail = this.staticPan.input;
     }
     const volume = DriftPlan.of('volume', spec.drift.volume, now);
     if (volume) {
@@ -208,6 +216,7 @@ export class MixBus {
 
   dispose() {
     this.panStage?.dispose();
+    this.staticPan?.dispose();
     this.nodes.forEach((n) => n.disconnect());
   }
 
