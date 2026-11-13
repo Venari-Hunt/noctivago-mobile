@@ -118,3 +118,10 @@ test('the limiter-off curve passes every sample and matches the soft curve below
   const mid = (straight.length - 1) / 2;
   for (const i of [mid - 100, mid - 1, mid, mid + 1, mid + 100]) assert.ok(Math.abs(straight[i] - soft[i]) < 1e-6);
 });
+
+test('a group placed left or right builds a bus; a centered one still builds nothing', () => {
+  const group = (pan) => ({ sounds: [{}], groups: [{ filters: { ...neutral, pan }, soundIndexes: [0] }], wholeMix: null });
+  assert.deepEqual(groupBusSpecs(group(0)), [null]);
+  assert.equal(groupBusSpecs(group(-0.6))[0].pan, -0.6);
+  assert.equal(groupBusSpecs(group(3))[0].pan, 1);
+});
